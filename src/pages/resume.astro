@@ -1,0 +1,21 @@
+---
+import '../styles/global.css';
+import Navigation from '@/components/Navigation';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import {Content as MarkdownContent} from '../content/resume.md';
+const pageTitle =  "My Resume"
+
+---
+
+<html lang="en">
+	<head>
+		<title>{pageTitle}</title>
+	</head>
+	<body>
+	<BaseLayout>
+		<div class="max-w-4xl border-2 border-gray-200 dark:border-gray-800 shadow-md text-sm p-6 md:p-12 bg-white dark:bg-gray-950 center mx-auto">
+			<MarkdownContent />
+		</div>
+	</BaseLayout>
+	</body>
+</html>

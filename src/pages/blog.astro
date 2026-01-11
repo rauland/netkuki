@@ -1,0 +1,17 @@
+---
+import '../styles/global.css';
+import Navigation from '@/components/Navigation';
+import BaseLayout from '../layouts/BaseLayout.astro';
+const pageTitle = "Blog";
+
+---
+
+<html lang="en">
+	<head>
+		<title>{pageTitle}</title>
+	</head>
+	<body>
+	<BaseLayout pageTitle={pageTitle}>
+	</BaseLayout>
+	</body>
+</html>

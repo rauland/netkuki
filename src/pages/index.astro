@@ -1,0 +1,58 @@
+---
+import "../styles/global.css";
+import BaseLayout from "../layouts/BaseLayout.astro";
+const pageTitle = "Home";
+import { Content as MarkdownContent } from "../content/home.md";
+import { FeatureBlock } from "@/components/FeatureBlock";
+
+const netkuki = [
+	{
+		imgsrc: "/assets/logo-sm.jpg",
+		title: "netkuki",
+		content: [
+			"I use this site as my domain, ",
+			"It uses a few modern web technologies listed below.",
+		],
+	},
+];
+
+const dependencies = [
+	{
+		imgsrc:"",
+		title: "Astro",
+		content:["Astro is a JavaScript web framework optimized for building fast, content-driven websites."]
+	},
+	{
+		imgsrc:"",
+		title: "TailwindCSS",
+		content:["Tailwind CSS is an open-source CSS framework"]
+	},
+	{
+		imgsrc:"",
+		title: "Shadcn UI",
+		content:["Shadcn UI is a UI component library "]
+	},
+	{
+		imgsrc:"",
+		title: "Cloudflare pages",
+		content:["Cloudflare Pages is a modern web application hosting platform"]
+	},
+]
+---
+
+<html lang="en">
+	<head>
+		<title>{pageTitle}</title>
+	</head>
+	<body>
+		<BaseLayout pageTitle={pageTitle}>
+			<div class="pr-4 pl-4">
+				<h2 class="mb-5">Welcome to netkuki.com</h2>
+				<FeatureBlock data={netkuki} />
+				<!-- <h4>Netkuki is built and deployed with the following:</h4> -->
+				<!-- <FeatureBlock data={dependencies} /> -->
+				<MarkdownContent />
+			</div>
+		</BaseLayout>
+	</body>
+</html>
