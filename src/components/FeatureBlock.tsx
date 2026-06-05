@@ -1,6 +1,9 @@
 import {
 	Card,
-	CardContent
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle
 } from "@/components/ui/card"
 
 interface Props {
@@ -14,23 +17,27 @@ interface Props {
 export function FeatureBlock({ data }: Props) {
 	return (
 		<>
-			{data.map((item, i) => {
-				return (
-					<Card className='shadow-md p-4 mb-4'>
-						<div className="flex-row items-center sm:flex">
-							<img src={item.imgsrc} alt={`${item.title} Logo`} className="rounded-sm w-16 h-16 mr-4" />
-							<h3 className="text-lg font-semibold">{item.title}</h3>
-							<CardContent className="p-0 sm:p-4">
-								<div className="text-sm">
-									{item.content.map((line, i) => {
-										return(<>{line}<br /></>)
-									})}
-								</div>
-							</CardContent>
-						</div>
-					</Card>
-				);
-			})}
+			<div>
+				{data.map((item, i) => {
+					return (
+						<Card className='shadow-md p-4 mb-4'>
+							<div className="flex-col items-left sm:flex">
+								<CardHeader className="flex flex-row items-center">
+									<img src={item.imgsrc} alt={`${item.title} Logo`} className="rounded-sm w-16 h-16 mr-4" />
+									<CardTitle className="pb-2">{item.title}</CardTitle>
+								</CardHeader>
+								<CardContent>
+									<div className="text-sm">
+										{item.content.map((line, i) => {
+											return(<>{line}<br /></>)
+										})}
+									</div>
+								</CardContent>
+							</div>
+						</Card>
+					);
+				})}
+			</div>
 		</>
 	)
 }
