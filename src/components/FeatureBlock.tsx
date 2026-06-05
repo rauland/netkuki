@@ -17,7 +17,7 @@ interface Props {
 export function FeatureBlock({ data }: Props) {
 	return (
 		<>
-			<div>
+			<div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
 				{data.map((item, i) => {
 					return (
 						<Card className='shadow-md p-4 mb-4'>

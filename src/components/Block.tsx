@@ -21,7 +21,7 @@ export function Block({ data }: Props) {
     <div className="flex flex-wrap gap-4">
       {data.map((item, i) => {
         return (
-          <div className="w-full sm:w-80">
+          <div className="w-full sm:w-80 ">
             <Card>
               <CardHeader>
                 <CardTitle>{item.title}</CardTitle>
