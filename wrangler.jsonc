@@ -1,8 +1,8 @@
 {
-    "$schema": "node_modules/wrangler/config-schema.json",
-    "name": "netkuki",
-    "compatibility_date": "2025-04-25",
-    "assets": {
-      "directory": "./dist"
-    }
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "netkuki",
+  "compatibility_date": "2025-04-25",
+  "assets": {
+    "directory": "./dist"
   }
+}
