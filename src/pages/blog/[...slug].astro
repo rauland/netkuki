@@ -1,0 +1,30 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getCollection, render } from "astro:content";
+
+export async function getStaticPaths() {
+	const posts = await getCollection("blog", ({ data }) => !data.draft);
+	return posts.map((post) => ({
+		params: { slug: post.id },
+		props: { post },
+	}));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const pageTitle = `${post.data.title} — Netkuki`;
+---
+
+<BaseLayout pageTitle={pageTitle}>
+	<main class="inner-page post-page">
+		<a class="back-link" href="/blog">← All writing</a>
+		<header class="post-header">
+			<p class="eyebrow"><span class="status-dot"></span> NOTES FROM THE OPEN WEB</p>
+			<h1 class="inner-title">{post.data.title}</h1>
+			{post.data.description && <p class="inner-lede">{post.data.description}</p>}
+			<div class="post-meta"><time datetime={post.data.pubDate.toISOString()}>{post.data.pubDate.toLocaleDateString("en-AU", { year: "numeric", month: "long", day: "numeric" })}</time>{post.data.tags.length > 0 && <span>{post.data.tags.join(" · ")}</span>}</div>
+		</header>
+		<article class="post-content"><Content /></article>
+		<a class="back-link" href="/blog">← All writing</a>
+	</main>
+</BaseLayout>

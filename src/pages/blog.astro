@@ -1,13 +1,30 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { getCollection } from "astro:content";
+
+const posts = (await getCollection("blog", ({ data }) => !data.draft))
+	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 ---
 
 <BaseLayout pageTitle="Writing — Netkuki">
 	<main class="inner-page">
 		<p class="eyebrow"><span class="status-dot"></span> NOTES FROM THE OPEN WEB</p>
 		<h1 class="inner-title">A place for<br /><span>unfinished thoughts.</span></h1>
-		<p class="inner-lede">Little things learned along the way. Longer things when they need more room. The notebook is open; new notes are on their way.</p>
-		<div class="note-card"><span class="note-number">01 / SOON</span><div><h2>Good things take a little time.</h2><p>The first note is still taking shape. In the meantime, have a look at what this site is made of.</p><a class="arrow-link" href="/#built-with">Under the hood <span aria-hidden="true">↗</span></a></div><span class="note-sparkle" aria-hidden="true">✳</span></div>
+		<p class="inner-lede">Little things learned along the way. Longer things when they need more room. Always a work in progress.</p>
+		{posts.length > 0 ? (
+			<div class="article-list">
+				{posts.map((post) => (
+					<a class="article-card" href={`/blog/${post.id}/`}>
+						<div class="article-meta"><time datetime={post.data.pubDate.toISOString()}>{post.data.pubDate.toLocaleDateString("en-AU", { year: "numeric", month: "short", day: "numeric" })}</time><span>{post.data.tags.join(" · ")}</span></div>
+						<h2>{post.data.title}</h2>
+						{post.data.description && <p>{post.data.description}</p>}
+						<span class="article-arrow" aria-hidden="true">↗</span>
+					</a>
+				))}
+			</div>
+		) : (
+			<div class="note-card"><span class="note-number">THE NOTEBOOK</span><div><h2>Good things take a little time.</h2><p>There aren’t any notes here just yet. When a Markdown post is added to the blog folder, it’ll appear here automatically.</p><a class="arrow-link" href="/#built-with">Under the hood <span aria-hidden="true">↗</span></a></div><span class="note-sparkle" aria-hidden="true">✳</span></div>
+		)}
 		<a class="back-link" href="/">← Back to the beginning</a>
 	</main>
 </BaseLayout>
