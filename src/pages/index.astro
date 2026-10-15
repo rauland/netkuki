@@ -1,52 +1,52 @@
 ---
-import "../styles/global.css";
 import BaseLayout from "../layouts/BaseLayout.astro";
-const pageTitle = "Home";
-import { Content as MarkdownContent } from "../content/home.md";
-import { FeatureBlock } from "@/components/IndexCards";
 
-const netkuki = [
-	{
-		title: "netkuki",
-		imgsrc: "/assets/logo-symbol.png",
-		content: ["Netkuki is a personal blog and portfolio website built with Astro, Tailwind CSS, and Shadcn UI, and hosted on Cloudflare Pages."],
-	},
-	{
-		imgsrc:"/assets/astro.png",
-		title: "Astro",
-		content:["Astro is a JavaScript web framework optimized for building fast, content-driven websites."]
-	},
-	{
-		imgsrc:"/assets/tailwindcss.jpg",
-		title: "TailwindCSS",
-		content:["Tailwind CSS is an open-source CSS framework."]
-	},
-	{
-		imgsrc:"/assets/shadcn.png",
-		title: "Shadcn UI",
-		content:["Shadcn UI is a UI component library."]
-	},
-	{
-		imgsrc:"/assets/cloudflare.png",
-		title: "Cloudflare pages",
-		content:["Cloudflare Pages is a modern web application hosting platform."]
-	},
-]
+const pageTitle = "Netkuki — A little corner of the internet";
+const stack = ["Astro", "TypeScript", "CSS", "Cloudflare"];
 ---
 
-<html lang="en">
-	<head>
-		<title>{pageTitle}</title>
-	</head>
-	<body>
-		<BaseLayout pageTitle={pageTitle}>
-			<div class="pr-4 pl-4">
-				<h2 class="mb-5">Welcome to netkuki.com</h2>
-				<FeatureBlock data={netkuki} />
-				<!-- <h4>Netkuki is built and deployed with the following:</h4> -->
-				<!-- <FeatureBlock data={dependencies} /> -->
-				<MarkdownContent />
+<BaseLayout pageTitle={pageTitle}>
+	<main class="home-page">
+		<section class="hero" aria-labelledby="hero-title">
+			<div class="hero-copy">
+				<p class="eyebrow"><span class="status-dot"></span> INDEPENDENTLY CURIOUS · ALWAYS BUILDING</p>
+				<h1 id="hero-title">Making the internet feel a little more <span>human.</span></h1>
+				<p class="hero-intro">A small corner for things I make, things I learn, and ideas worth sharing. Thoughtful by design, built for the open web.</p>
+				<div class="hero-actions">
+					<a class="button button-primary" href="/resume">A little about me <span aria-hidden="true">↗</span></a>
+					<a class="text-link" href="https://github.com/rauland/netkuki" target="_blank" rel="noopener noreferrer">Explore the code <span aria-hidden="true">↗</span></a>
+				</div>
 			</div>
-		</BaseLayout>
-	</body>
-</html>
+			<div class="hero-art" aria-label="Abstract illustration of a sun setting over a green landscape">
+				<div class="art-sun"></div>
+				<div class="art-orbit orbit-one"></div>
+				<div class="art-orbit orbit-two"></div>
+				<div class="art-hill hill-back"></div>
+				<div class="art-hill hill-front"></div>
+				<div class="art-label"><span>FIELD NOTES</span><span>NO. 001 — THE OPEN WEB</span></div>
+			</div>
+			<div class="hero-meta"><span>AN OPEN TAB, IN THE BEST WAY</span><span>EST. ON THE INTERNET&nbsp; ↘</span></div>
+		</section>
+
+		<section class="intro-section" id="about">
+			<div class="section-index">01 <span>—</span> THE IDEA</div>
+			<div class="intro-content">
+				<h2>A personal site should feel like a person.</h2>
+				<div class="intro-aside"><p>Netkuki is my little home on the web: a place to experiment, collect useful things, and share the occasional thought. No algorithm, no noise. Just the good stuff.</p><a class="arrow-link" href="/blog">Find your way around <span aria-hidden="true">↗</span></a></div>
+			</div>
+		</section>
+
+		<section class="build-section" id="built-with">
+			<div class="section-index">02 <span>—</span> UNDER THE HOOD</div>
+			<div class="build-content">
+				<div><p class="eyebrow">SMALL, FAST, AND MADE TO LAST</p><h2>Built for the open web.</h2></div>
+				<div class="build-detail"><p>A modern little setup that keeps the focus on the words and ideas. Lightweight pages, friendly tools, and a home that loads fast wherever you find it.</p><div class="stack-list">{stack.map((item, i) => <span><small>0{i + 1}</small>{item}</span>)}</div></div>
+			</div>
+		</section>
+
+		<section class="contact-section">
+			<p class="eyebrow">YOU MADE IT TO THE END</p>
+			<div class="contact-row"><h2>Stay a little.</h2><a class="button button-light" href="https://github.com/rauland" target="_blank" rel="noopener noreferrer">Say hello on GitHub <span aria-hidden="true">↗</span></a></div>
+		</section>
+	</main>
+</BaseLayout>

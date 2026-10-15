@@ -1,21 +1,16 @@
 ---
-import '../styles/global.css';
-import Navigation from '@/components/Navigation';
-import BaseLayout from '../layouts/BaseLayout.astro';
-import {Content as MarkdownContent} from '../content/resume.md';
-const pageTitle =  "My Resume"
-
+import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
-<html lang="en">
-	<head>
-		<title>{pageTitle}</title>
-	</head>
-	<body>
-	<BaseLayout>
-		<div class="max-w-4xl border-2 border-gray-200 dark:border-gray-800 shadow-md text-sm p-6 md:p-12 bg-white dark:bg-gray-950 center mx-auto">
-			<MarkdownContent />
+<BaseLayout pageTitle="About — Netkuki">
+	<main class="inner-page about-page">
+		<p class="eyebrow"><span class="status-dot"></span> A NOTE ABOUT THIS PLACE</p>
+		<h1 class="inner-title">An internet home,<br /><span>made with intention.</span></h1>
+		<p class="inner-lede">Netkuki is a personal blog and portfolio: a small, independent space to make things, learn in public, and share what feels worth passing along.</p>
+		<div class="about-grid">
+			<div class="about-block"><span class="note-number">THE APPROACH</span><h2>Simple on purpose.</h2><p>Fast pages, clear writing, and a little room for curiosity. This site is built with Astro and hosted on Cloudflare Pages, with the open web in mind.</p></div>
+			<div class="about-block"><span class="note-number">THE TOOLKIT</span><h2>Good tools, used thoughtfully.</h2><p>Astro, TypeScript, and a lightweight design system keep things quick and easy to evolve as the site grows.</p></div>
 		</div>
-	</BaseLayout>
-	</body>
-</html>
+		<a class="back-link" href="/">← Back to the beginning</a>
+	</main>
+</BaseLayout>
