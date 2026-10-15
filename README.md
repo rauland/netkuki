@@ -1,6 +1,6 @@
 # Netkuki
 
-Netkuki is a personal corner of the internet for things made, things learned, and ideas worth sharing. It is built with Astro and Tailwind CSS, with React components available for interactive UI.
+Netkuki is a personal corner of the internet for things made, things learned, and ideas worth sharing. It is built with Astro and Tailwind CSS, with custom CSS for the site’s visual design.
 
 ## Getting started
 
@@ -32,7 +32,6 @@ Open the local URL printed by Astro (usually `http://localhost:4321`). The devel
 
 ```text
 src/
-  components/   Shared React and UI components
   content/      Markdown content
   layouts/      Shared page header, footer, and layout
   pages/        Astro routes
