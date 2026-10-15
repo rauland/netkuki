@@ -19,6 +19,10 @@ const stack = ["Astro", "TypeScript", "CSS", "Cloudflare"];
 			</div>
 			<div class="hero-art" aria-label="Abstract illustration of a sun setting over a green landscape">
 				<div class="art-sun"></div>
+				<svg class="art-moon" viewBox="0 0 64 64" aria-hidden="true">
+					<defs><mask id="crescent-cutout"><rect width="64" height="64" fill="white" /><circle cx="45" cy="19" r="25" fill="black" /></mask></defs>
+					<circle cx="31" cy="32" r="27" fill="#e8e6bf" mask="url(#crescent-cutout)" />
+				</svg>
 				<div class="art-orbit orbit-one"></div>
 				<div class="art-orbit orbit-two"></div>
 				<div class="art-hill hill-back"></div>
