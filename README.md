@@ -4,7 +4,7 @@ Netkuki is a personal corner of the internet for things made, things learned, an
 
 ## Getting started
 
-You’ll need Node.js 20 or later and npm.
+Use Node.js 24 LTS (as specified in `.nvmrc`) and npm 9.6.5 or later. Astro requires at least Node.js 22.23.4; older Node 22 releases and Node 20 are not supported.
 
 ```sh
 npm ci
@@ -18,6 +18,7 @@ Open the local URL printed by Astro (usually `http://localhost:4321`). The devel
 | Command | Description |
 | --- | --- |
 | `npm run dev` | Start the local development server. |
+| `npm run check` | Check TypeScript configuration and Astro source files. |
 | `npm run build` | Build the site into `dist/`. |
 | `npm run preview` | Preview the production build locally. Run `npm run build` first. |
 | `npm run astro -- --help` | Show Astro CLI options. |
@@ -39,7 +40,9 @@ src/
 public/         Static files served as-is
 ```
 
-The home page illustration is drawn with CSS. Shared page styling lives in `src/styles/global.css`.
+The home page illustration is drawn with CSS. Shared page styling lives in `src/styles/global.css`. Tailwind CSS 4 runs through its Vite plugin and discovers source files automatically, so no Tailwind JavaScript config is needed.
+
+The npm override for Miniflare’s `undici` dependency selects a patched 7.x release until Wrangler includes it upstream.
 
 ## Writing posts
 
@@ -63,4 +66,6 @@ Write the post here using **Markdown**.
 
 ## Deployment
 
-The repository includes a GitHub Actions workflow at `.github/workflows/astro.yml` that builds and deploys the site to GitHub Pages when changes are pushed to `main`. `wrangler.jsonc` also configures the generated `dist/` directory as Cloudflare static assets.
+All routes, including blog posts, are generated as static HTML in `dist/`. Cloudflare can serve this directory directly; the Astro Cloudflare adapter is only needed if the site adds on-demand server rendering or other server features.
+
+`wrangler.jsonc` configures `dist/` as Cloudflare static assets. Set the Cloudflare build environment to Node.js 24, the build command to `npm run build`, and the output directory to `dist`. The GitHub Actions workflow at `.github/workflows/astro.yml` checks types and builds the site on pushes to `main` and on pull requests; publishing is handled by Cloudflare. The workflow uses the Node.js version from `.nvmrc`.
