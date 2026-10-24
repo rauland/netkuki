@@ -81,7 +81,8 @@ a:focus-visible {
   transition: opacity 0.2s;
 }
 .nav-links a:hover,
-.nav-contact:hover {
+.nav-contact:hover,
+.theme-toggle:hover {
   opacity: 0.6;
 }
 .nav-links a[aria-current="page"] {
@@ -729,15 +730,12 @@ a:focus-visible {
   flex: none;
   display: grid;
   place-items: center;
-  border: 1px solid var(--line);
+  border: 1px solid var(--ink);
   border-radius: 50%;
   background: transparent;
   color: var(--ink);
   cursor: pointer;
-  transition:
-    background 0.2s,
-    border-color 0.2s,
-    transform 0.2s;
+  transition: opacity 0.2s;
 }
 .theme-toggle svg {
   width: 17px;
@@ -747,10 +745,6 @@ a:focus-visible {
   stroke-width: 1.6;
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-.theme-toggle:hover {
-  background: #e9ecdf;
-  transform: rotate(-12deg);
 }
 .theme-toggle .theme-moon {
   display: none;
@@ -767,9 +761,6 @@ a:focus-visible {
 }
 .dark .theme-toggle .theme-moon {
   display: block;
-}
-.dark .theme-toggle:hover {
-  background: #2b372e;
 }
 .dark .eyebrow,
 .dark .inner-lede,
