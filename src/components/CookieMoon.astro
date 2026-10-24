@@ -1,0 +1,28 @@
+<section class="cookie-universe" data-cookie-moon aria-label="Cookie moon">
+	<p class="cookie-label">A LITTLE SPACE FOR CURIOSITY</p>
+	<div class="cookie-viewport" data-cookie-viewport>
+		<canvas class="cookie-canvas" tabindex="0" aria-label="Interactive 3D chocolate-chip cookie" aria-describedby="cookie-instructions">
+			A chocolate-chip cookie floating like a moon. Find more on the Writing and About pages.
+		</canvas>
+	</div>
+	<p class="cookie-status" data-cookie-status role="status">Baking a little moon…</p>
+	<div class="cookie-bottom-bar">
+		<p id="cookie-instructions" class="cookie-instructions">
+			Drag to rotate <span aria-hidden="true">·</span> Scroll or pinch to zoom
+			<span class="visually-hidden">. Use arrow keys to turn, plus or minus to zoom, and R to reset.</span>
+		</p>
+		<div class="cookie-controls" aria-label="Cookie view controls">
+			<button type="button" data-cookie-action="zoom-in" aria-label="Zoom in" title="Zoom in" disabled>+</button>
+			<button type="button" data-cookie-action="zoom-out" aria-label="Zoom out" title="Zoom out" disabled>−</button>
+			<button type="button" data-cookie-action="motion" aria-label="Pause rotation" aria-pressed="false" disabled>Pause</button>
+			<button type="button" data-cookie-action="reset" aria-label="Reset cookie view" disabled>Reset</button>
+		</div>
+	</div>
+	<noscript><p class="cookie-no-script">Enable JavaScript to explore the cookie in 3D. You can still visit <a href="/writing">Writing</a> and <a href="/about">About</a>.</p></noscript>
+</section>
+
+<script>
+	import { mountCookieMoon } from "../scripts/cookie-moon";
+	const viewer = document.querySelector<HTMLElement>("[data-cookie-moon]");
+	if (viewer) mountCookieMoon(viewer);
+</script>

@@ -1,13 +1,13 @@
 ---
 const currentPath = Astro.url.pathname.replace(/\/$/, "") || "/";
-const activePath = currentPath.startsWith("/blog/") ? "/blog" : currentPath;
+const activePath = currentPath.startsWith("/writing/") ? "/writing" : currentPath;
 ---
 <header class="site-header">
 	<nav class="nav-shell" aria-label="Main navigation">
 		<a class="wordmark" href="/" aria-label="Netkuki home"><span class="wordmark-mark">n<span>.</span></span><span class="wordmark-name">netkuki</span></a>
 		<div class="nav-links">
 			<a href="/" aria-current={activePath === "/" ? "page" : undefined}>Home</a>
-			<a href="/blog" aria-current={activePath === "/blog" ? "page" : undefined}>Writing</a>
+			<a href="/writing" aria-current={activePath === "/writing" ? "page" : undefined}>Writing</a>
 			<a href="/about" aria-current={activePath === "/about" ? "page" : undefined}>About</a>
 		</div>
 		<div class="nav-actions">

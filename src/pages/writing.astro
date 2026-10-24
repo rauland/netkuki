@@ -14,7 +14,7 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 		{posts.length > 0 ? (
 			<div class="article-list">
 				{posts.map((post) => (
-					<a class="article-card" href={`/blog/${post.id}/`}>
+					<a class="article-card" href={`/writing/${post.id}/`}>
 						<div class="article-meta"><time datetime={post.data.pubDate.toISOString()}>{post.data.pubDate.toLocaleDateString("en-AU", { year: "numeric", month: "short", day: "numeric" })}</time><span>{post.data.tags.join(" · ")}</span></div>
 						<h2>{post.data.title}</h2>
 						{post.data.description && <p>{post.data.description}</p>}
@@ -23,7 +23,7 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 				))}
 			</div>
 		) : (
-			<div class="note-card"><span class="note-number">THE NOTEBOOK</span><div><h2>Good things take a little time.</h2><p>There aren’t any notes here just yet. When a Markdown post is added to the blog folder, it’ll appear here automatically.</p><a class="arrow-link" href="/#built-with">Under the hood <span aria-hidden="true">↗</span></a></div><span class="note-sparkle" aria-hidden="true">✳</span></div>
+			<div class="note-card"><span class="note-number">THE NOTEBOOK</span><div><h2>Good things take a little time.</h2><p>There aren’t any notes here just yet. I’m working on the next one.</p><a class="arrow-link" href="/about">A little about me <span aria-hidden="true">↗</span></a></div><span class="note-sparkle" aria-hidden="true">✳</span></div>
 		)}
 		<a class="back-link" href="/">← Back to the beginning</a>
 	</main>

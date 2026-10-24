@@ -26,7 +26,7 @@ Open the local URL printed by Astro (usually `http://localhost:4321`). The devel
 ## Pages
 
 - `/` — Home page and introduction to the site.
-- `/blog` — Writing page.
+- `/writing` — Writing page, with articles at `/writing/<slug>/`.
 - `/about` — About Netkuki and the tools behind it.
 
 ## Project structure
@@ -40,13 +40,13 @@ src/
 public/         Static files served as-is
 ```
 
-The home page illustration is drawn with CSS. Shared page styling lives in `src/styles/global.css`. Tailwind CSS 4 runs through its Vite plugin and discovers source files automatically, so no Tailwind JavaScript config is needed.
+The home page features an interactive Three.js cookie moon, built from procedural geometry and textures in `src/scripts/cookie-moon.ts` and mounted by `src/components/CookieMoon.astro`. Drag to rotate, scroll or pinch to zoom, or use the on-screen controls. The focused canvas also supports arrow keys, plus/minus, R to reset, and Space to pause. Automatic rotation respects reduced-motion preferences. Shared page styling lives in `src/styles/global.css`. Tailwind CSS 4 runs through its Vite plugin and discovers source files automatically, so no Tailwind JavaScript config is needed.
 
 The npm override for Miniflare’s `undici` dependency selects a patched 7.x release until Wrangler includes it upstream.
 
 ## Writing posts
 
-Copy `src/content/blog/_template.md` to a new `.md` file anywhere under `src/content/blog/`. Its path becomes its URL, so `src/content/blog/my-first-note.md` is published at `/blog/my-first-note/`. Posts appear on `/blog` automatically after the development server refreshes or the site is rebuilt.
+Copy `src/content/blog/_template.md` to a new `.md` file anywhere under `src/content/blog/`. Its path becomes its URL, so `src/content/blog/my-first-note.md` is published at `/writing/my-first-note/`. Published posts appear on `/writing` after the development server refreshes or the site is rebuilt. Previous `/blog` URLs redirect to their `/writing` equivalents; Astro supplies development and static HTML redirects, and `public/_redirects` supplies permanent redirects on Cloudflare.
 
 Each post needs a title and publication date. Description and tags are optional; set `draft: true` to keep a post out of the listing and generated pages. The `_template.md` file is a draft and is not published.
 

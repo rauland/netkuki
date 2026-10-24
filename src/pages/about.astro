@@ -1,16 +1,82 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+
+const skillGroups = [
+	{
+		label: "CLOUD & IDENTITY",
+		title: "Platforms with a solid foundation.",
+		description: "Cloud landing zones, multi-subscription governance, hybrid networking, and least-privilege access.",
+		skills: ["Azure", "AWS", "Entra ID", "IAM / RBAC", "Landing Zones", "VNet / VPC", "S3 / Blob"],
+	},
+	{
+		label: "INFRASTRUCTURE & DELIVERY",
+		title: "Make the repeatable parts repeatable.",
+		description: "Reusable infrastructure, configuration management, and CI/CD pipelines that make changes easier to review and repeat.",
+		skills: ["Terraform", "Ansible", "GitHub Actions", "Azure DevOps"],
+	},
+	{
+		label: "CODE & SCRIPTING",
+		title: "Less manual work. More useful tools.",
+		description: "Scripts, applications, and API integrations for administration, reporting, and operational workflows.",
+		skills: ["Python", "PowerShell", "Bash", "REST APIs"],
+	},
+	{
+		label: "SECURITY & COMPLIANCE",
+		title: "Security in the day-to-day work.",
+		description: "Policy controls, image remediation, and infrastructure hardening guided by enterprise security requirements.",
+		skills: ["ISM", "NIST SP 800-171 Rev. 2", "Azure Policy", "AWS SCPs", "Splunk"],
+	},
+	{
+		label: "LINUX & CONTAINERS",
+		title: "A platform to build on.",
+		description: "Linux systems, virtualisation, and container platforms, from enterprise workloads to the self-hosted lab.",
+		skills: ["RHEL", "Ubuntu", "Oracle Linux KVM", "Docker", "Kubernetes", "OpenShift", "Proxmox VE"],
+	},
+	{
+		label: "MONITORING & OBSERVABILITY",
+		title: "Understand what’s running.",
+		description: "Infrastructure monitoring, metrics, and dashboards to support troubleshooting and day-to-day operations.",
+		skills: ["Zabbix", "Prometheus", "Grafana"],
+	},
+];
+
 ---
 
 <BaseLayout pageTitle="About — Netkuki">
 	<main class="inner-page about-page">
-		<p class="eyebrow"><span class="status-dot"></span> A NOTE ABOUT THIS PLACE</p>
-		<h1 class="inner-title">An internet home,<br /><span>made with intention.</span></h1>
-		<p class="inner-lede">Netkuki is a personal blog and portfolio: a small, independent space to make things, learn in public, and share what feels worth passing along.</p>
-		<div class="about-grid">
-			<div class="about-block"><span class="note-number">THE APPROACH</span><h2>Simple on purpose.</h2><p>Fast pages, clear writing, and a little room for curiosity. This site is built with Astro and hosted on Cloudflare Pages, with the open web in mind.</p></div>
-			<div class="about-block"><span class="note-number">THE TOOLKIT</span><h2>Good tools, used thoughtfully.</h2><p>Astro, TypeScript, and a lightweight design system keep things quick and easy to evolve as the site grows.</p></div>
+		<p class="eyebrow"><span class="status-dot"></span> SYSTEMS ADMINISTRATION · CLOUD · AUTOMATION</p>
+		<h1 class="inner-title">I build, automate,<br /><span>and keep learning.</span></h1>
+		<p class="inner-lede">I’m rauland, a systems administrator working across enterprise cloud, Linux, and virtualised infrastructure. I build secure platforms, automate the repetitive parts, and write about what I learn along the way.</p>
+		<div class="hero-actions">
+			<a class="button button-primary" href="https://github.com/rauland" target="_blank" rel="noopener noreferrer">Find me on GitHub <span aria-hidden="true">↗</span></a>
+			<a class="text-link" href="/writing">Read my writing <span aria-hidden="true">↗</span></a>
 		</div>
+		<section class="profile-section" aria-labelledby="skills-title">
+			<p class="eyebrow">SKILLS & TOOLKIT</p>
+			<h2 class="profile-title" id="skills-title">The tools behind the work.</h2>
+			<div class="about-grid">
+				{skillGroups.map((group) => (
+					<div class="about-block">
+						<span class="note-number">{group.label}</span>
+						<h3>{group.title}</h3>
+						<p>{group.description}</p>
+						<ul class="skill-list" aria-label={`${group.label.toLowerCase()} tools`}>
+							{group.skills.map((skill) => <li>{skill}</li>)}
+						</ul>
+					</div>
+				))}
+			</div>
+		</section>
+		<section class="profile-section" aria-labelledby="profile-project-title">
+			<p class="eyebrow">OUTSIDE THE DAY JOB</p>
+			<h2 class="profile-title" id="profile-project-title">A self-hosted platform, defined in code.</h2>
+			<p class="profile-copy">Platform Automation is where I put these ideas into practice on Proxmox VE. Terraform modules define the infrastructure; Ansible handles tag-based machine configuration; GitHub Actions runs plan, apply, and destroy workflows with approval controls. Remote state lives in AWS S3 with locking.</p>
+			<div class="project-links">
+				<a class="arrow-link" href="https://github.com/rauland/iac" target="_blank" rel="noopener noreferrer">Explore the project <span aria-hidden="true">↗</span></a>
+				<a class="arrow-link" href="/writing/iac/">Read the project story <span aria-hidden="true">↗</span></a>
+				<a class="arrow-link" href="https://github.com/rauland?tab=repositories" target="_blank" rel="noopener noreferrer">All projects on GitHub <span aria-hidden="true">↗</span></a>
+			</div>
+		</section>
 		<a class="back-link" href="/">← Back to the beginning</a>
 	</main>
 </BaseLayout>

@@ -6,6 +6,10 @@ import tailwindcss from '@tailwindcss/vite';
 // https://astro.build/config
 export default defineConfig({
   output: 'static',
+  redirects: {
+    '/blog': '/writing',
+    '/blog/[...slug]': '/writing/[...slug]',
+  },
   vite: {
     plugins: [tailwindcss()],
   },
