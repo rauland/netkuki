@@ -9,6 +9,14 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 
 <section class="cookie-universe" data-cookie-moon data-destination="home" aria-label="Cookie moon">
 	<p class="cookie-label">A LITTLE SPACE FOR CURIOSITY</p>
+	<div class="cookie-orbits" aria-hidden="true">
+		<div class="cookie-orbit cookie-orbit-writing">
+			<span class="cookie-orbit-marker"><span class="cookie-orbit-dot"></span></span>
+		</div>
+		<div class="cookie-orbit cookie-orbit-about">
+			<span class="cookie-orbit-marker"><span class="cookie-orbit-dot"></span></span>
+		</div>
+	</div>
 	<button class="cookie-return" type="button" data-cookie-destination="home" hidden>← Fly back to the cookie</button>
 	<div class="cookie-viewport" data-cookie-viewport>
 		<canvas class="cookie-canvas" tabindex="0" aria-label="Interactive 3D chocolate-chip cookie" aria-describedby="cookie-instructions">

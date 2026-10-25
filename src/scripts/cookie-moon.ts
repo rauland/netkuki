@@ -358,6 +358,7 @@ export function mountCookieMoon(host: HTMLElement) {
   controls.autoRotateSpeed = 0.35;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let paused = reducedMotion.matches;
+  let orbitPaused = reducedMotion.matches;
   let faceHovered = false;
   let faceFocused = false;
   let visible = true;
@@ -417,6 +418,7 @@ export function mountCookieMoon(host: HTMLElement) {
   }
 
   function updateMotion() {
+    host.dataset.motion = orbitPaused ? "paused" : "playing";
     controls.autoRotate = !paused && !faceHovered && !faceFocused && destination === "home" && !flight && !leaving && !entrance;
     motionButton.textContent = paused ? "Play" : "Pause";
     motionButton.setAttribute(
@@ -586,6 +588,7 @@ export function mountCookieMoon(host: HTMLElement) {
         break;
       case "motion":
         paused = !paused;
+        orbitPaused = paused;
         updateMotion();
         break;
       case "reset":
@@ -615,6 +618,7 @@ export function mountCookieMoon(host: HTMLElement) {
       if (event.key === "r" || event.key === "R") reset();
       else if (event.key === " ") {
         paused = !paused;
+        orbitPaused = paused;
         updateMotion();
       } else zoom(event.key === "-" ? 1.14 : 0.88);
     }
@@ -752,6 +756,7 @@ export function mountCookieMoon(host: HTMLElement) {
   }
   function onMotionPreference() {
     paused = reducedMotion.matches;
+    orbitPaused = reducedMotion.matches;
     if (reducedMotion.matches) finishEntrance();
     updateMotion();
   }
@@ -760,8 +765,8 @@ export function mountCookieMoon(host: HTMLElement) {
     ambient.intensity = dark ? 1.65 : 2.2;
     rim.intensity = dark ? 3.5 : 1.6;
     sunlight.intensity = dark ? 3.2 : 2.8;
-    starsMaterial.opacity = dark ? 0.55 : 0.18;
-    starsMaterial.color.set(dark ? "#93baff" : "#4679bc");
+    stars.visible = dark;
+    starsMaterial.opacity = 0.55;
     requestRender();
   }
   function animate(time: number) {
