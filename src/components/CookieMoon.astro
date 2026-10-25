@@ -1,15 +1,57 @@
-<section class="cookie-universe" data-cookie-moon aria-label="Cookie moon">
+---
+import { getCollection } from "astro:content";
+
+const posts = (await getCollection("blog", ({ data }) => !data.draft))
+	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+	.slice(0, 2);
+---
+
+<section class="cookie-universe" data-cookie-moon data-destination="home" aria-label="Cookie moon">
 	<p class="cookie-label">A LITTLE SPACE FOR CURIOSITY</p>
+	<button class="cookie-return" type="button" data-cookie-destination="home" hidden>← Fly back to the cookie</button>
 	<div class="cookie-viewport" data-cookie-viewport>
 		<canvas class="cookie-canvas" tabindex="0" aria-label="Interactive 3D chocolate-chip cookie" aria-describedby="cookie-instructions">
 			A chocolate-chip cookie floating like a moon. Find more on the Writing and About pages.
 		</canvas>
+		<nav class="cookie-face" data-cookie-face aria-label="Explore Netkuki" hidden>
+			<button type="button" data-cookie-destination="writing">Writing <span aria-hidden="true">↗</span></button>
+			<button type="button" data-cookie-destination="about">About <span aria-hidden="true">↗</span></button>
+		</nav>
+		<article class="cookie-surface" data-cookie-surface="writing" aria-labelledby="cookie-writing-title" hidden>
+			<p class="cookie-surface-coordinate">01 / THE NOTEBOOK</p>
+			<h2 id="cookie-writing-title" tabindex="-1">Notes from<br />a little world.</h2>
+			<p>Things built, lessons learned, and ideas still taking shape.</p>
+			<div class="cookie-surface-posts">
+				{posts.map((post) => (
+					<a href={`/writing/${post.id}/`}>
+						<span>{post.data.pubDate.toLocaleDateString("en-AU", { year: "numeric", month: "short", day: "numeric" })}</span>
+						<strong>{post.data.title} <span aria-hidden="true">↗</span></strong>
+					</a>
+				))}
+				{posts.length === 0 && <p>The next note is in the making. Come back soon.</p>}
+			</div>
+			<div class="cookie-surface-links">
+				<a href="/writing">All writing ↗</a>
+				<button type="button" data-cookie-destination="about">Fly to About →</button>
+			</div>
+		</article>
+		<article class="cookie-surface" data-cookie-surface="about" aria-labelledby="cookie-about-title" hidden>
+			<p class="cookie-surface-coordinate">02 / THE OTHER SIDE</p>
+			<h2 id="cookie-about-title" tabindex="-1">Hello,<br />I’m rauland.</h2>
+			<p>A systems administrator building secure platforms, automating the repetitive parts, and learning along the way.</p>
+			<p class="cookie-surface-toolkit">Cloud · Linux · Infrastructure<br />Terraform · Ansible · Python</p>
+			<div class="cookie-surface-links">
+				<a href="/about">More about me ↗</a>
+				<button type="button" data-cookie-destination="writing">Fly to Writing →</button>
+			</div>
+		</article>
 	</div>
 	<p class="cookie-status" data-cookie-status role="status">Baking a little moon…</p>
+	<p class="visually-hidden" data-cookie-announcement role="status" aria-live="polite"></p>
 	<div class="cookie-bottom-bar">
 		<p id="cookie-instructions" class="cookie-instructions">
-			Drag to rotate <span aria-hidden="true">·</span> Scroll or pinch to zoom
-			<span class="visually-hidden">. Use arrow keys to turn, plus or minus to zoom, and R to reset.</span>
+			<span data-cookie-hint>Pick a place to fly to <span aria-hidden="true">·</span> Drag to explore</span>
+			<span class="visually-hidden">. Use arrow keys to turn, plus or minus to zoom, R to reset, and Escape to fly back.</span>
 		</p>
 		<div class="cookie-controls" aria-label="Cookie view controls">
 			<button type="button" data-cookie-action="zoom-in" aria-label="Zoom in" title="Zoom in" disabled>+</button>

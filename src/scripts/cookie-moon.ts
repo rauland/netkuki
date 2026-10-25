@@ -11,6 +11,7 @@ import {
   InstancedMesh,
   Matrix4,
   Mesh,
+  MeshDepthMaterial,
   MeshStandardMaterial,
   PCFShadowMap,
   PerspectiveCamera,
@@ -19,6 +20,8 @@ import {
   Quaternion,
   RedFormat,
   RepeatWrapping,
+  RGBAFormat,
+  RGBADepthPacking,
   Scene,
   SphereGeometry,
   SRGBColorSpace,
@@ -27,6 +30,7 @@ import {
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { ImprovedNoise } from "three/addons/math/ImprovedNoise.js";
+import { CSS3DObject, CSS3DRenderer } from "three/addons/renderers/CSS3DRenderer.js";
 
 // A fixed seed keeps the same cookie when a reader returns or changes theme.
 function seededRandom(seed: number) {
@@ -144,12 +148,48 @@ function makeCookie() {
     chipPositions.setXYZ(i, x * shape, y * shape, z * shape);
   }
   chipGeometry.computeVertexNormals();
-  const chocolate = new InstancedMesh(
-    chipGeometry,
-    new MeshStandardMaterial({ color: "#292929", roughness: 0.85 }),
-    chips.length,
-  );
-  chocolate.castShadow = chocolate.receiveShadow = true;
+  const chipFades: {
+    name: "writing" | "about";
+    mesh: InstancedMesh;
+    texture: DataTexture;
+    data: Uint8Array;
+    opacity: number;
+  }[] = [];
+  const chipSlots = new Map<number, { mesh: InstancedMesh; index: number }>();
+  // Keep the full cookie in the overview; only clear the patch being read.
+  const chipRegions = chips.map((chip) => {
+    const side = Math.sign(chip.z);
+    const onText = Math.abs(chip.x + side * 0.55) < 1.08 && Math.abs(chip.y - side * 0.55) < 1.15;
+    return onText ? (side === 1 ? "writing" : "about") : "rim";
+  });
+  for (const name of ["rim", "writing", "about"] as const) {
+    const indices = chipRegions.flatMap((region, index) => region === name ? [index] : []);
+    const data = new Uint8Array([255, 255, 255, 255]);
+    const texture = name === "rim" ? null : new DataTexture(data, 1, 1, RGBAFormat);
+    if (texture) texture.needsUpdate = true;
+    const chocolate = new InstancedMesh(
+      chipGeometry,
+      new MeshStandardMaterial({
+        color: "#292929",
+        roughness: 0.85,
+        alphaMap: texture,
+        transparent: !!texture,
+        depthWrite: !texture,
+      }),
+      indices.length,
+    );
+    chocolate.castShadow = chocolate.receiveShadow = true;
+    if (texture && name !== "rim") {
+      // The same alpha map fades the shadow, so invisible chips leave no shadow.
+      chocolate.customDepthMaterial = new MeshDepthMaterial({
+        depthPacking: RGBADepthPacking,
+        alphaHash: true,
+      });
+      chipFades.push({ name, mesh: chocolate, texture, data, opacity: 1 });
+    }
+    indices.forEach((chipIndex, index) => chipSlots.set(chipIndex, { mesh: chocolate, index }));
+    cookie.add(chocolate);
+  }
   const matrix = new Matrix4();
   const normal = new Vector3();
   const rotation = new Quaternion();
@@ -176,17 +216,21 @@ function makeCookie() {
       chip.size * 0.55,
     );
     matrix.compose(position, rotation, scale);
-    chocolate.setMatrixAt(i, matrix);
-    chocolate.setColorAt(i, new Color().setScalar(0.7 + random() * 0.5));
+    const slot = chipSlots.get(i)!;
+    slot.mesh.setMatrixAt(slot.index, matrix);
+    slot.mesh.setColorAt(slot.index, new Color().setScalar(0.7 + random() * 0.5));
   }
-  cookie.add(chocolate);
   cookie.rotation.set(0.12, -0.25, -0.12);
-  return { cookie, grainTexture };
+  return { cookie, grainTexture, chipFades };
 }
 
 export function mountCookieMoon(host: HTMLElement) {
   const canvas = host.querySelector<HTMLCanvasElement>("canvas")!;
   const viewport = host.querySelector<HTMLElement>("[data-cookie-viewport]")!;
+  const face = host.querySelector<HTMLElement>("[data-cookie-face]")!;
+  const returnButton = host.querySelector<HTMLButtonElement>(".cookie-return")!;
+  const announcement = host.querySelector<HTMLElement>("[data-cookie-announcement]")!;
+  const hint = host.querySelector<HTMLElement>("[data-cookie-hint]")!;
   const status = host.querySelector<HTMLElement>("[data-cookie-status]")!;
   const buttons = host.querySelectorAll<HTMLButtonElement>(
     "[data-cookie-action]",
@@ -218,10 +262,34 @@ export function mountCookieMoon(host: HTMLElement) {
   renderer.shadowMap.needsUpdate = true;
 
   const scene = new Scene();
-  const camera = new PerspectiveCamera(38, 1, 0.1, 50);
+  const camera = new PerspectiveCamera(38, 1, 0.1, 120);
   camera.position.set(0, 0.05, 7.4);
-  const { cookie, grainTexture } = makeCookie();
+  const { cookie, grainTexture, chipFades } = makeCookie();
+  const homeRotation = cookie.quaternion.clone();
   scene.add(cookie);
+  // Keep real links attached to the cookie in the same coordinate system.
+  const htmlRenderer = new CSS3DRenderer();
+  htmlRenderer.domElement.className = "cookie-html";
+  viewport.appendChild(htmlRenderer.domElement);
+  const faceObject = new CSS3DObject(face);
+  faceObject.position.set(0, 0, 0.6);
+  faceObject.scale.setScalar(0.0095);
+  cookie.add(faceObject);
+  type Destination = "home" | "writing" | "about";
+  const surfaces = (["writing", "about"] as const).map((name) => {
+    const element = host.querySelector<HTMLElement>(`[data-cookie-surface="${name}"]`)!;
+    const object = new CSS3DObject(element);
+    const back = name === "about";
+    object.position.set(back ? 0.55 : -0.55, back ? -0.55 : 0.55, back ? -0.58 : 0.58);
+    object.rotation.y = back ? Math.PI : 0;
+    // Surface styles render at 2× size, then scale down for crisper 3D text.
+    object.scale.setScalar(0.0021);
+    cookie.add(object);
+    return { name, element, object };
+  });
+  const facePosition = new Vector3();
+  const faceNormal = new Vector3();
+  const faceToCamera = new Vector3();
   const ambient = new HemisphereLight("#ffffff", "#333333", 2.1);
   scene.add(ambient);
   const sunlight = new DirectionalLight("#ffffff", 3.2);
@@ -248,24 +316,37 @@ export function mountCookieMoon(host: HTMLElement) {
 
   const random = seededRandom(92);
   const starsGeometry = new BufferGeometry();
-  const starPositions = new Float32Array(130 * 3);
+  const starCount = 1800;
+  const starRadius = 80;
+  const starPositions = new Float32Array(starCount * 3);
+  const starColors = new Float32Array(starCount * 3);
   for (let i = 0; i < starPositions.length; i += 3) {
-    starPositions[i] = (random() - 0.5) * 24;
-    starPositions[i + 1] = (random() - 0.5) * 16;
-    starPositions[i + 2] = -5 - random() * 6;
+    // Uniform directions cover the whole sky without clustering at the poles.
+    const height = random() * 2 - 1;
+    const angle = random() * Math.PI * 2;
+    const ringRadius = Math.sqrt(1 - height * height) * starRadius;
+    starPositions[i] = Math.cos(angle) * ringRadius;
+    starPositions[i + 1] = height * starRadius;
+    starPositions[i + 2] = Math.sin(angle) * ringRadius;
+    const brightness = 0.45 + random() * 0.55;
+    starColors.set([brightness, brightness, brightness], i);
   }
   starsGeometry.setAttribute(
     "position",
     new Float32BufferAttribute(starPositions, 3),
   );
+  starsGeometry.setAttribute("color", new Float32BufferAttribute(starColors, 3));
   const starsMaterial = new PointsMaterial({
     color: "#93baff",
-    size: 0.018,
+    vertexColors: true,
+    size: 1.4,
+    sizeAttenuation: false,
     transparent: true,
     opacity: 0.6,
     depthWrite: false,
   });
-  scene.add(new Points(starsGeometry, starsMaterial));
+  const stars = new Points(starsGeometry, starsMaterial);
+  scene.add(stars);
 
   const controls = new OrbitControls(camera, canvas);
   controls.enablePan = false;
@@ -273,7 +354,7 @@ export function mountCookieMoon(host: HTMLElement) {
   controls.dampingFactor = 0.07;
   controls.rotateSpeed = 0.55;
   controls.zoomSpeed = 0.65;
-  controls.autoRotateSpeed = 0.22;
+  controls.autoRotateSpeed = 0.35;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let paused = reducedMotion.matches;
   let visible = true;
@@ -282,13 +363,44 @@ export function mountCookieMoon(host: HTMLElement) {
   let lastTime = 0;
   let baseDistance = 7.4;
   let needsRender = true;
+  let destination: Destination = "home";
+  let flight: {
+    start: number;
+    duration: number;
+    fromPosition: Vector3;
+    toPosition: Vector3;
+    fromTarget: Vector3;
+    toTarget: Vector3;
+    fromUp: Vector3;
+    toUp: Vector3;
+    arc: Quaternion;
+    fromCookie: Quaternion;
+    toCookie: Quaternion;
+    fromChips: number[];
+    toChips: number[];
+  } | null = null;
+  const flightRotation = new Quaternion();
+  const flightDirection = new Vector3();
 
   function requestRender() {
     needsRender = true;
   }
+  function fadeChips(from: number[], to: number[], progress: number) {
+    const eased = progress * progress * (3 - 2 * progress);
+    chipFades.forEach((batch, index) => {
+      batch.opacity = from[index] + (to[index] - from[index]) * eased;
+      const alpha = Math.round(batch.opacity * 255);
+      if (batch.data[1] === alpha) return;
+      batch.data[1] = alpha;
+      batch.texture.needsUpdate = true;
+      batch.mesh.visible = alpha > 0;
+      renderer.shadowMap.needsUpdate = true;
+      requestRender();
+    });
+  }
 
   function updateMotion() {
-    controls.autoRotate = !paused;
+    controls.autoRotate = !paused && destination === "home" && !flight;
     motionButton.textContent = paused ? "Play" : "Pause";
     motionButton.setAttribute(
       "aria-label",
@@ -299,35 +411,120 @@ export function mountCookieMoon(host: HTMLElement) {
   function resize() {
     const { width, height } = viewport.getBoundingClientRect();
     if (!width || !height) return;
-    const zoomRatio = camera.position.length() / baseDistance;
+    const zoomRatio = camera.position.distanceTo(controls.target) / baseDistance;
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     baseDistance = 7.4 / Math.min(camera.aspect, 1);
     controls.minDistance = baseDistance * 0.7;
     controls.maxDistance = baseDistance * 1.6;
-    camera.position.setLength(baseDistance * zoomRatio);
+    if (destination === "home" && !flight) {
+      camera.position.sub(controls.target).setLength(baseDistance * zoomRatio).add(controls.target);
+    }
     renderer.setSize(width, height, false);
+    htmlRenderer.setSize(width, height);
     requestRender();
-    controls.update(0);
+    if (destination !== "home" || flight) flyTo(destination, true);
+    else controls.update(0);
   }
   function zoom(factor: number) {
-    camera.position.setLength(
+    if (destination !== "home" || flight) return;
+    camera.position.sub(controls.target).setLength(
       Math.max(
         controls.minDistance,
         Math.min(controls.maxDistance, camera.position.length() * factor),
       ),
-    );
+    ).add(controls.target);
     controls.update(0);
   }
   function reset() {
-    controls.reset();
-    camera.position.set(0, 0.05, baseDistance);
-    cookie.rotation.set(0.12, -0.25, -0.12);
-    renderer.shadowMap.needsUpdate = true;
+    flyTo("home");
+  }
+  function finishFlight() {
+    flight = null;
+    delete host.dataset.traveling;
+    controls.enabled = destination === "home";
+    controls.enableDamping = true;
+    updateMotion();
+    announcement.textContent = destination === "home"
+      ? "Back at the whole cookie. Choose Writing or About to explore."
+      : `${destination === "writing" ? "Writing" : "About"}. You have arrived on the cookie’s surface. Press Escape to fly back.`;
+    // Render visibility before moving keyboard focus into the destination.
+    renderScene();
+    const focusTarget = destination === "home"
+      ? face.querySelector<HTMLButtonElement>("button")
+      : surfaces.find((surface) => surface.name === destination)?.element.querySelector<HTMLElement>("h2");
+    focusTarget?.focus({ preventScroll: true });
     requestRender();
-    controls.update(0);
+  }
+  function flyTo(next: Destination, immediate = false) {
+    // Flush any remaining orbit damping before taking over the camera.
+    controls.autoRotate = false;
+    controls.enableDamping = false;
+    if (controls.enabled) controls.update(0);
+    controls.enabled = false;
+    paused = true;
+    destination = next;
+    host.dataset.destination = next;
+    host.dataset.traveling = "true";
+    announcement.textContent = next === "home" ? "Flying back to the whole cookie." : `Flying to ${next === "writing" ? "Writing" : "About"}.`;
+    returnButton.hidden = next === "home";
+    hint.textContent = next === "home"
+      ? "Pick a place to fly to · Drag to explore"
+      : `${next === "writing" ? "01 / Writing" : "02 / About"} · Escape to fly back`;
+    buttons.forEach((button) => {
+      button.disabled = next !== "home" && button.dataset.cookieAction !== "reset";
+    });
+    const toTarget = new Vector3();
+    const toPosition = new Vector3(0, 0.05, baseDistance);
+    const toUp = new Vector3(0, 1, 0);
+    if (next !== "home") {
+      const surface = surfaces.find((entry) => entry.name === next)!;
+      surface.element.hidden = false;
+      surface.element.style.display = "";
+      surface.object.getWorldPosition(toTarget);
+      const normal = new Vector3(0, 0, 1).transformDirection(surface.object.matrixWorld);
+      toUp.set(0, 1, 0).transformDirection(surface.object.matrixWorld);
+      const tanFov = Math.tan((camera.fov * Math.PI) / 360);
+      const width = surface.element.offsetWidth * surface.object.scale.x;
+      const height = surface.element.offsetHeight * surface.object.scale.y;
+      const distance = Math.max(height / (2 * tanFov * 0.78), width / (2 * tanFov * camera.aspect * 0.8), 2.5);
+      toPosition.copy(toTarget).addScaledVector(normal, distance);
+    }
+    flight = {
+      start: performance.now(),
+      duration: immediate || reducedMotion.matches ? 0 : 1700,
+      fromPosition: camera.position.clone(),
+      toPosition,
+      fromTarget: controls.target.clone(),
+      toTarget,
+      fromUp: camera.up.clone(),
+      toUp,
+      arc: new Quaternion().setFromUnitVectors(camera.position.clone().normalize(), toPosition.clone().normalize()),
+      fromCookie: cookie.quaternion.clone(),
+      toCookie: next === "home" ? homeRotation.clone() : cookie.quaternion.clone(),
+      fromChips: chipFades.map((batch) => batch.opacity),
+      toChips: chipFades.map((batch) => batch.name === next ? 0 : 1),
+    };
+    updateMotion();
+    if (flight.duration === 0) {
+      camera.position.copy(toPosition);
+      camera.up.copy(toUp);
+      controls.target.copy(toTarget);
+      camera.lookAt(toTarget);
+      cookie.quaternion.copy(flight.toCookie);
+      fadeChips(flight.fromChips, flight.toChips, 1);
+      renderer.shadowMap.needsUpdate = true;
+      finishFlight();
+    }
+    requestRender();
   }
   function onAction(event: Event) {
+    const travelButton = (event.target as Element).closest<HTMLButtonElement>("[data-cookie-destination]");
+    if (travelButton) {
+      const next = travelButton.dataset.cookieDestination;
+      if (next === "home" || next === "writing" || next === "about") flyTo(next);
+      return;
+    }
     const button = (event.target as Element).closest<HTMLButtonElement>(
       "[data-cookie-action]",
     );
@@ -348,6 +545,7 @@ export function mountCookieMoon(host: HTMLElement) {
     }
   }
   function onKey(event: KeyboardEvent) {
+    if (destination !== "home" || flight) return;
     const turns: Record<string, [number, number]> = {
       ArrowLeft: [0, -0.12],
       ArrowRight: [0, 0.12],
@@ -375,6 +573,38 @@ export function mountCookieMoon(host: HTMLElement) {
     paused = true;
     updateMotion();
   }
+  function onFaceInteract() {
+    onStart();
+    requestRender();
+  }
+  function renderFace() {
+    for (const { object, element, active } of [
+      { object: faceObject, element: face, active: destination === "home" && !flight },
+      ...surfaces.map((surface) => ({ ...surface, active: destination === surface.name })),
+    ]) {
+      object.getWorldPosition(facePosition);
+      faceNormal.set(0, 0, 1).transformDirection(object.matrixWorld);
+      faceToCamera.copy(camera.position).sub(facePosition).normalize();
+      // HTML has no WebGL depth buffer: hide it before the surface turns away.
+      object.visible = active && faceNormal.dot(faceToCamera) > 0.35;
+      element.inert = !object.visible || !!flight;
+      element.hidden = !object.visible;
+    }
+    htmlRenderer.render(scene, camera);
+  }
+  function renderScene() {
+    // A distant sky follows camera translation, keeping its directions and size
+    // stable while the cookie moves closer or the camera flies around it.
+    stars.position.copy(camera.position);
+    renderer.render(scene, camera);
+    renderFace();
+  }
+  function onEscape(event: KeyboardEvent) {
+    if (event.key === "Escape" && (destination !== "home" || flight)) {
+      event.preventDefault();
+      flyTo("home");
+    }
+  }
   function onMotionPreference() {
     paused = reducedMotion.matches;
     updateMotion();
@@ -391,11 +621,29 @@ export function mountCookieMoon(host: HTMLElement) {
   function animate(time: number) {
     if (disposed) return;
     if (visible && !document.hidden) {
-      const changed = controls.update(
+      if (flight) {
+        const progress = Math.max(0, Math.min((time - flight.start) / flight.duration, 1));
+        const eased = progress * progress * (3 - 2 * progress);
+        fadeChips(flight.fromChips, flight.toChips, Math.min(progress * 1.8, 1));
+        flightRotation.identity().slerp(flight.arc, eased);
+        flightDirection.copy(flight.fromPosition).normalize().applyQuaternion(flightRotation);
+        const radius = flight.fromPosition.length() * (1 - eased) + flight.toPosition.length() * eased;
+        camera.position.copy(flightDirection).multiplyScalar(radius + Math.sin(Math.PI * eased) * 1.1);
+        controls.target.lerpVectors(flight.fromTarget, flight.toTarget, eased);
+        camera.up.lerpVectors(flight.fromUp, flight.toUp, eased).normalize();
+        camera.lookAt(controls.target);
+        if (destination === "home") {
+          cookie.quaternion.slerpQuaternions(flight.fromCookie, flight.toCookie, eased);
+          renderer.shadowMap.needsUpdate = true;
+        }
+        requestRender();
+        if (progress === 1) finishFlight();
+      }
+      const changed = controls.enabled && controls.update(
         lastTime ? Math.min((time - lastTime) / 1000, 0.05) : 0,
       );
       if (changed || needsRender) {
-        renderer.render(scene, camera);
+        renderScene();
         needsRender = false;
       }
     }
@@ -415,7 +663,11 @@ export function mountCookieMoon(host: HTMLElement) {
   });
   visibilityObserver.observe(host);
   host.addEventListener("click", onAction);
+  document.addEventListener("keydown", onEscape);
   canvas.addEventListener("keydown", onKey);
+  face.addEventListener("pointerenter", onFaceInteract);
+  face.addEventListener("pointerdown", onFaceInteract);
+  face.addEventListener("focusin", onFaceInteract);
   controls.addEventListener("start", onStart);
   controls.addEventListener("change", requestRender);
   reducedMotion.addEventListener("change", onMotionPreference);
@@ -428,7 +680,11 @@ export function mountCookieMoon(host: HTMLElement) {
     themeObserver.disconnect();
     visibilityObserver.disconnect();
     host.removeEventListener("click", onAction);
+    document.removeEventListener("keydown", onEscape);
     canvas.removeEventListener("keydown", onKey);
+    face.removeEventListener("pointerenter", onFaceInteract);
+    face.removeEventListener("pointerdown", onFaceInteract);
+    face.removeEventListener("focusin", onFaceInteract);
     reducedMotion.removeEventListener("change", onMotionPreference);
     controls.dispose();
     scene.traverse((object) => {
@@ -438,11 +694,23 @@ export function mountCookieMoon(host: HTMLElement) {
           ? object.material
           : [object.material];
         materials.forEach((material) => material.dispose());
+        if (object instanceof Mesh) object.customDepthMaterial?.dispose();
+        if (object instanceof InstancedMesh) object.dispose();
       }
     });
     grainTexture.dispose();
+    chipFades.forEach((batch) => batch.texture.dispose());
     sunlight.shadow.dispose();
     renderer.dispose();
+    face.hidden = true;
+    faceObject.removeFromParent();
+    viewport.appendChild(face);
+    for (const surface of surfaces) {
+      surface.element.hidden = true;
+      surface.object.removeFromParent();
+      viewport.appendChild(surface.element);
+    }
+    htmlRenderer.domElement.remove();
   }
   import.meta.hot?.dispose(dispose);
   window.addEventListener(
@@ -461,6 +729,7 @@ export function mountCookieMoon(host: HTMLElement) {
     button.disabled = false;
   });
   status.hidden = true;
+  face.hidden = false;
   host.dataset.state = "ready";
   frame = requestAnimationFrame(animate);
 }

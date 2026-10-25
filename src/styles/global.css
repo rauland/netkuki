@@ -87,9 +87,7 @@ a:focus-visible {
   font-weight: 600;
   transition: opacity 0.2s;
 }
-.nav-links a:hover,
-.nav-contact:hover,
-.theme-toggle:hover {
+.nav-links a:hover {
   opacity: 0.6;
 }
 .nav-links a[aria-current="page"] {
@@ -100,9 +98,11 @@ a:focus-visible {
   color: var(--muted);
 }
 .nav-contact {
-  border: 1px solid var(--ink);
+  border: 1px solid var(--line);
   border-radius: 99px;
   padding: 11px 17px;
+  background: var(--paper);
+  transition: border-color 0.2s, background 0.2s;
 }
 .nav-contact span {
   margin-left: 8px;
@@ -165,6 +165,148 @@ a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -6px;
 }
+.cookie-html {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.cookie-face {
+  display: flex;
+  width: 284px;
+  gap: 12px;
+  backface-visibility: hidden;
+}
+.cookie-face[hidden] {
+  display: none;
+}
+.cookie-face button {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 5px 16px #00000024;
+  font: 600 17px var(--display);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.cookie-face button:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.cookie-face button span {
+  margin-left: 12px;
+  color: var(--accent);
+}
+.cookie-face button:focus-visible,
+.cookie-return:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.cookie-return {
+  position: absolute;
+  top: 18px;
+  right: max(48px, calc((100% - 1240px) / 2));
+  z-index: 2;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  color: var(--ink);
+  background: var(--paper);
+  font: 11px var(--mono);
+  cursor: pointer;
+}
+.cookie-return[hidden],
+.cookie-surface[hidden] {
+  display: none;
+}
+.cookie-surface {
+  /* Keep these dimensions at 2×; the 3D object scales them back down. */
+  width: 840px;
+  max-height: 900px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 56px;
+  color: #1c293b;
+  backface-visibility: hidden;
+  font: 32px / 1.65 "DM Sans", sans-serif;
+  text-align: left;
+}
+.cookie-surface h2 {
+  margin: 30px 0;
+  color: #172231;
+  font: 600 76px / 1.08 var(--display);
+  letter-spacing: -0.055em;
+}
+.cookie-surface h2:focus {
+  outline: none;
+}
+.cookie-surface p {
+  margin: 0 0 36px;
+}
+.cookie-surface .cookie-surface-coordinate {
+  margin: 0;
+  font: 500 20px var(--mono);
+  letter-spacing: 0.12em;
+  color: #43546a;
+}
+.cookie-surface-toolkit {
+  font: 24px / 1.9 var(--mono);
+}
+.cookie-surface-posts {
+  border-top: 2px solid #1c293b30;
+  margin: 40px 0;
+}
+.cookie-surface-posts a {
+  display: block;
+  border-bottom: 2px solid #1c293b30;
+  padding: 28px 0;
+}
+.cookie-surface-posts a > span {
+  display: block;
+  font: 20px var(--mono);
+  color: #43546a;
+  margin-bottom: 16px;
+}
+.cookie-surface-posts strong {
+  display: block;
+  font: 600 34px / 1.4 var(--display);
+}
+.cookie-surface-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 44px;
+}
+.cookie-surface-links a,
+.cookie-surface-links button {
+  padding: 16px 0;
+  border: 0;
+  border-bottom: 2px solid #43546a80;
+  background: none;
+  color: #1c293b;
+  font: 500 22px var(--mono);
+  cursor: pointer;
+}
+.cookie-surface a:hover,
+.cookie-surface button:hover {
+  color: #235fa8;
+}
+.cookie-surface a:focus-visible,
+.cookie-surface button:focus-visible {
+  outline: 4px solid #235fa8;
+  outline-offset: 6px;
+}
+.cookie-universe[data-traveling] .cookie-canvas,
+.cookie-universe:not([data-destination="home"]) .cookie-canvas {
+  cursor: default;
+}
 .cookie-bottom-bar {
   position: absolute;
   left: max(48px, calc((100% - 1240px) / 2));
@@ -203,11 +345,15 @@ a:focus-visible {
     border-color 0.2s,
     background 0.2s;
 }
-.cookie-controls button:hover {
+.cookie-controls button:hover,
+.theme-toggle:hover,
+.nav-contact:hover {
   border-color: var(--accent);
   background: var(--surface);
 }
-.cookie-controls button:focus-visible {
+.cookie-controls button:focus-visible,
+.theme-toggle:focus-visible,
+.nav-contact:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
@@ -234,6 +380,9 @@ a:focus-visible {
   display: none;
 }
 @media (max-width: 800px) {
+  .cookie-return {
+    right: 24px;
+  }
   .cookie-label,
   .cookie-bottom-bar {
     left: 24px;
@@ -243,6 +392,23 @@ a:focus-visible {
   }
 }
 @media (max-width: 560px) {
+  .cookie-surface {
+    width: 640px;
+    max-height: 960px;
+    padding: 40px;
+    font-size: 34px;
+  }
+  .cookie-surface h2 {
+    font-size: 68px;
+  }
+  .cookie-return {
+    top: 43px;
+    right: 18px;
+    font-size: 10px;
+  }
+  .cookie-universe:not([data-destination="home"]) .cookie-label {
+    visibility: hidden;
+  }
   .cookie-universe {
     height: max(480px, calc(100svh - 162px));
   }
@@ -618,12 +784,12 @@ a:focus-visible {
   flex: none;
   display: grid;
   place-items: center;
-  border: 1px solid var(--ink);
+  border: 1px solid var(--line);
   border-radius: 50%;
-  background: transparent;
+  background: var(--paper);
   color: var(--ink);
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: border-color 0.2s, background 0.2s;
 }
 .theme-toggle svg {
   width: 17px;
