@@ -9,6 +9,8 @@ import {
   HemisphereLight,
   IcosahedronGeometry,
   InstancedMesh,
+  LinearFilter,
+  LinearMipmapLinearFilter,
   Matrix4,
   Mesh,
   MeshDepthMaterial,
@@ -18,13 +20,14 @@ import {
   Points,
   PointsMaterial,
   Quaternion,
-  RedFormat,
   RepeatWrapping,
   RGBAFormat,
   RGBADepthPacking,
   Scene,
+  ShaderChunk,
   SphereGeometry,
   SRGBColorSpace,
+  Vector2,
   Vector3,
   WebGLRenderer,
 } from "three";
@@ -74,11 +77,14 @@ function makeCookie() {
     }
   }
 
-  const geometry = new SphereGeometry(radius, 128, 96);
+  const geometry = new SphereGeometry(radius, 192, 144);
   const positions = geometry.getAttribute("position");
   const colors = new Float32Array(positions.count * 3);
+  const dayColors = new Float32Array(positions.count * 3);
   const surfaceColor = new Color("#b9b9b9");
   const edgeColor = new Color("#707070");
+  const daySurfaceColor = new Color("#a0612e");
+  const dayEdgeColor = new Color("#633618");
   const color = new Color();
   for (let i = 0; i < positions.count; i++) {
     const x = positions.getX(i),
@@ -106,45 +112,134 @@ function makeCookie() {
     );
     color.copy(surfaceColor).lerp(edgeColor, baking);
     colors.set([color.r, color.g, color.b], i * 3);
+    color.copy(daySurfaceColor).lerp(dayEdgeColor, baking);
+    dayColors.set([color.r, color.g, color.b], i * 3);
   }
-  geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
+  const cookieColors = new Float32BufferAttribute(colors, 3);
+  geometry.setAttribute("color", cookieColors);
   geometry.computeVertexNormals();
 
-  const textureSize = 256;
-  const grainData = new Uint8Array(textureSize * textureSize);
-  for (let i = 0; i < grainData.length; i++) {
-    const x = i % textureSize,
-      y = Math.floor(i / textureSize);
-    grainData[i] = 105 + random() * 95 + noise.noise(x / 13, y / 13, 3) * 40;
+  // Retain the coarse grain and random sequence so existing chip placement stays stable.
+  const grainSize = 256;
+  const coarseGrain = new Uint8Array(grainSize * grainSize);
+  for (let i = 0; i < coarseGrain.length; i++) {
+    const x = i % grainSize,
+      y = Math.floor(i / grainSize);
+    coarseGrain[i] = 105 + random() * 95 + noise.noise(x / 13, y / 13, 3) * 40;
+  }
+  const textureSize = 1024;
+  const grainData = new Uint8Array(textureSize * textureSize * 4);
+  const crumbData = new Uint8Array(textureSize * textureSize * 4);
+  const longitudeCos = new Float32Array(textureSize);
+  const longitudeSin = new Float32Array(textureSize);
+  for (let x = 0; x < textureSize; x++) {
+    const angle = (x / (textureSize - 1)) * Math.PI * 2;
+    longitudeCos[x] = Math.cos(angle);
+    longitudeSin[x] = Math.sin(angle);
+  }
+  for (let y = 0; y < textureSize; y++) {
+    const latitude = (y / (textureSize - 1)) * Math.PI;
+    const ring = Math.sin(latitude) * radius;
+    const sy = -Math.cos(latitude) * radius;
+    const grainY = (y / (textureSize - 1)) * grainSize;
+    const y0 = Math.floor(grainY) % grainSize;
+    const y1 = (y0 + 1) % grainSize;
+    const fy = grainY - Math.floor(grainY);
+    for (let x = 0; x < textureSize; x++) {
+      // Sample on the original sphere to keep the fine relief continuous at the UV seam.
+      const sx = -longitudeCos[x] * ring;
+      const sz = longitudeSin[x] * ring;
+      const crumb = noise.noise(sx * 21, sy * 21, sz * 21);
+      const fine = noise.noise(sx * 73, sy * 73, sz * 73);
+      const pores = Math.max(0, noise.noise(sx * 42 + 17, sy * 42, sz * 42) - 0.12);
+      const crackField = noise.noise(sx * 5.4 + crumb * 0.16, sy * 5.4, sz * 5.4);
+      const crackMask = Math.max(0, noise.noise(sx * 1.7 + 8, sy * 1.7, sz * 1.7));
+      const cracks = Math.max(0, 1 - Math.abs(crackField) * 22) ** 2 * crackMask;
+      const grainX = (x / (textureSize - 1)) * grainSize;
+      const x0 = Math.floor(grainX) % grainSize;
+      const x1 = (x0 + 1) % grainSize;
+      const fx = grainX - Math.floor(grainX);
+      const row0 = coarseGrain[y0 * grainSize + x0] * (1 - fx) + coarseGrain[y0 * grainSize + x1] * fx;
+      const row1 = coarseGrain[y1 * grainSize + x0] * (1 - fx) + coarseGrain[y1 * grainSize + x1] * fx;
+      const speckle = (row0 * (1 - fy) + row1 * fy - 150) * 0.2 * (ring / radius);
+      const index = (y * textureSize + x) * 4;
+      // Build feathered masks; the flight animation controls when they soften the detail.
+      const side = sz >= 0 ? 1 : -1;
+      const readingX = Math.max(0, Math.min(1, (1.1 - Math.abs(sx + side * 0.55)) / 0.26));
+      const readingY = Math.max(0, Math.min(1, (1.16 - Math.abs(sy - side * 0.55)) / 0.25));
+      const readingMask = readingX * readingX * (3 - 2 * readingX) * readingY * readingY * (3 - 2 * readingY);
+      // Red holds shallow crumb, pores and cracks; green varies the surface roughness.
+      grainData[index] = Math.max(0, Math.min(255, 148 + crumb * 28 + fine * 13 + speckle - pores * 95 - cracks * 110));
+      grainData[index + 1] = Math.max(0, Math.min(255, 235 + crumb * 18 + pores * 20));
+      // The unused channels hold separate reading masks for the front and back.
+      grainData[index + 2] = side === 1 ? Math.round(readingMask * 255) : 0;
+      grainData[index + 3] = side === -1 ? Math.round(readingMask * 255) : 0;
+      // Visible baked flecks complement the relief under the scene's soft lighting.
+      const tone = Math.max(110, Math.min(255, 232 + crumb * 34 + fine * 12 - pores * 120 - cracks * 150));
+      crumbData[index] = crumbData[index + 1] = crumbData[index + 2] = tone;
+      crumbData[index + 3] = 255;
+    }
   }
   const grainTexture = new DataTexture(
     grainData,
     textureSize,
     textureSize,
-    RedFormat,
+    RGBAFormat,
   );
-  grainTexture.wrapS = grainTexture.wrapT = RepeatWrapping;
-  grainTexture.repeat.set(5, 3);
-  grainTexture.needsUpdate = true;
+  const crumbTexture = new DataTexture(crumbData, textureSize, textureSize, RGBAFormat);
+  for (const texture of [grainTexture, crumbTexture]) {
+    texture.wrapS = RepeatWrapping;
+    texture.magFilter = LinearFilter;
+    texture.minFilter = LinearMipmapLinearFilter;
+    texture.generateMipmaps = true;
+    texture.needsUpdate = true;
+  }
   const biscuit = new Mesh(
     geometry,
     new MeshStandardMaterial({
       vertexColors: true,
+      map: crumbTexture,
+      // Keep the overall palette while the colour map adds darker pores and cracks.
+      color: new Color().setScalar(1 / 0.9),
       roughness: 0.93,
+      roughnessMap: grainTexture,
       bumpMap: grainTexture,
-      bumpScale: 0.055,
+      bumpScale: 0.14,
     }),
   );
+  // Blend only the reading area's fine detail, leaving the overview fully textured.
+  const readingFocus = { value: new Vector2(0, 0) };
+  biscuit.material.onBeforeCompile = (shader) => {
+    shader.uniforms.cookieReadingFocus = readingFocus;
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform vec2 cookieReadingFocus;")
+      .replace("#include <map_fragment>", ShaderChunk.map_fragment.replace(
+        "diffuseColor *= sampledDiffuseColor;",
+        `float cookieColourMix = 0.96 * dot(texture2D(bumpMap, vMapUv).ba, cookieReadingFocus);
+         sampledDiffuseColor.rgb = mix(sampledDiffuseColor.rgb, vec3(223.0 / 255.0), cookieColourMix);
+         diffuseColor *= sampledDiffuseColor;`,
+      ))
+      .replace("#include <bumpmap_pars_fragment>", ShaderChunk.bumpmap_pars_fragment.replace(
+        "return vec2( dBx, dBy );",
+        `float cookieBumpMix = 0.96 * dot(texture2D(bumpMap, vBumpMapUv).ba, cookieReadingFocus);
+         return vec2(dBx, dBy) * (1.0 - cookieBumpMix);`,
+      ))
+      .replace("#include <roughnessmap_fragment>", ShaderChunk.roughnessmap_fragment.replace(
+        "roughnessFactor *= texelRoughness.g;",
+        `float cookieRoughnessMix = 0.96 * dot(texelRoughness.ba, cookieReadingFocus);
+         roughnessFactor *= mix(texelRoughness.g, 235.0 / 255.0, cookieRoughnessMix);`,
+      ));
+  };
   biscuit.castShadow = biscuit.receiveShadow = true;
   cookie.add(biscuit);
 
-  const chipGeometry = new IcosahedronGeometry(1, 1);
+  const chipGeometry = new IcosahedronGeometry(1, 2);
   const chipPositions = chipGeometry.getAttribute("position");
   for (let i = 0; i < chipPositions.count; i++) {
     const x = chipPositions.getX(i),
       y = chipPositions.getY(i),
       z = chipPositions.getZ(i);
-    const shape = 1 + noise.noise(x * 4, y * 4, z * 4) * 0.22;
+    const shape = 1 + noise.noise(x * 4, y * 4, z * 4) * 0.22 + noise.noise(x * 17, y * 17, z * 17) * 0.035;
     chipPositions.setXYZ(i, x * shape, y * shape, z * shape);
   }
   chipGeometry.computeVertexNormals();
@@ -156,6 +251,7 @@ function makeCookie() {
     opacity: number;
   }[] = [];
   const chipSlots = new Map<number, { mesh: InstancedMesh; index: number }>();
+  const chocolateMaterials: MeshStandardMaterial[] = [];
   // Keep the full cookie in the overview; only clear the patch being read.
   const chipRegions = chips.map((chip) => {
     const side = Math.sign(chip.z);
@@ -167,17 +263,18 @@ function makeCookie() {
     const data = new Uint8Array([255, 255, 255, 255]);
     const texture = name === "rim" ? null : new DataTexture(data, 1, 1, RGBAFormat);
     if (texture) texture.needsUpdate = true;
-    const chocolate = new InstancedMesh(
-      chipGeometry,
-      new MeshStandardMaterial({
-        color: "#292929",
-        roughness: 0.85,
-        alphaMap: texture,
-        transparent: !!texture,
-        depthWrite: !texture,
-      }),
-      indices.length,
-    );
+    const material = new MeshStandardMaterial({
+      color: "#292929",
+      roughness: 0.85,
+      roughnessMap: grainTexture,
+      bumpMap: grainTexture,
+      bumpScale: 0.004,
+      alphaMap: texture,
+      transparent: !!texture,
+      depthWrite: !texture,
+    });
+    chocolateMaterials.push(material);
+    const chocolate = new InstancedMesh(chipGeometry, material, indices.length);
     chocolate.castShadow = chocolate.receiveShadow = true;
     if (texture && name !== "rim") {
       // The same alpha map fades the shadow, so invisible chips leave no shadow.
@@ -221,7 +318,15 @@ function makeCookie() {
     slot.mesh.setColorAt(slot.index, new Color().setScalar(0.7 + random() * 0.5));
   }
   cookie.rotation.set(0.12, -0.25, -0.12);
-  return { cookie, grainTexture, chipFades };
+  function setPalette(dark: boolean) {
+    cookieColors.copyArray(dark ? colors : dayColors);
+    cookieColors.needsUpdate = true;
+    chocolateMaterials.forEach((material) => material.color.set(dark ? "#292929" : "#2b130b"));
+  }
+  function setReadingFocus(front: number, back: number) {
+    readingFocus.value.set(front, back);
+  }
+  return { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus };
 }
 
 export function mountCookieMoon(host: HTMLElement) {
@@ -264,7 +369,10 @@ export function mountCookieMoon(host: HTMLElement) {
   const scene = new Scene();
   const camera = new PerspectiveCamera(38, 1, 0.1, 120);
   camera.position.set(0, 0.05, 7.4);
-  const { cookie, grainTexture, chipFades } = makeCookie();
+  const { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus } = makeCookie();
+  for (const texture of [grainTexture, crumbTexture]) {
+    texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+  }
   const homeRotation = cookie.quaternion.clone();
   scene.add(cookie);
   // Keep real links attached to the cookie in the same coordinate system.
@@ -415,6 +523,10 @@ export function mountCookieMoon(host: HTMLElement) {
       renderer.shadowMap.needsUpdate = true;
       requestRender();
     });
+    setReadingFocus(
+      1 - chipFades.find((batch) => batch.name === "writing")!.opacity,
+      1 - chipFades.find((batch) => batch.name === "about")!.opacity,
+    );
   }
 
   function updateMotion() {
@@ -762,6 +874,7 @@ export function mountCookieMoon(host: HTMLElement) {
   }
   function updateTheme() {
     const dark = document.documentElement.classList.contains("dark");
+    setPalette(dark);
     ambient.intensity = dark ? 1.65 : 2.2;
     rim.intensity = dark ? 3.5 : 1.6;
     sunlight.intensity = dark ? 3.2 : 2.8;
@@ -878,6 +991,7 @@ export function mountCookieMoon(host: HTMLElement) {
       }
     });
     grainTexture.dispose();
+    crumbTexture.dispose();
     chipFades.forEach((batch) => batch.texture.dispose());
     sunlight.shadow.dispose();
     renderer.dispose();

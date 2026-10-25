@@ -272,15 +272,15 @@ a:focus-visible {
 .cookie-face[hidden] {
   display: none;
 }
-.cookie-face button {
+.cookie-face button,
+.cookie-surface-links button {
   position: relative;
   overflow: hidden;
   display: flex;
-  flex: 1;
   align-items: center;
   justify-content: space-between;
-  min-height: 128px;
-  padding: 0 36px;
+  min-height: var(--cookie-glass-height, 128px);
+  padding: 0 var(--cookie-glass-padding, 36px);
   border: 2px solid #ffffff66;
   border-radius: 198px;
   background-color: color-mix(in srgb, var(--paper) 80%, transparent);
@@ -291,7 +291,7 @@ a:focus-visible {
     inset 0 -2px 0 #ffffff20,
     0 16px 48px #00000026,
     0 4px 10px #00000014;
-  font: 600 34px var(--display);
+  font: 600 var(--cookie-glass-font-size, 34px) var(--display);
   cursor: pointer;
   transition:
     background-color 0.18s,
@@ -299,26 +299,34 @@ a:focus-visible {
     box-shadow 0.18s,
     transform 0.2s;
 }
+.cookie-face button {
+  flex: 1;
+}
 .cookie-face button::before,
-.cookie-face button::after {
+.cookie-face button::after,
+.cookie-surface-links button::before,
+.cookie-surface-links button::after {
   content: "";
   position: absolute;
   height: 2px;
   pointer-events: none;
   background: linear-gradient(90deg, transparent, #ffffffb3, transparent);
 }
-.cookie-face button::before {
+.cookie-face button::before,
+.cookie-surface-links button::before {
   top: 2px;
   left: 36px;
   right: 56px;
 }
-.cookie-face button::after {
+.cookie-face button::after,
+.cookie-surface-links button::after {
   bottom: 2px;
   left: 42%;
   right: 36px;
   opacity: 0.55;
 }
-.cookie-face button:is(:hover, :focus-visible) {
+.cookie-face button:is(:hover, :focus-visible),
+.cookie-surface-links button:is(:hover, :focus-visible) {
   background-color: color-mix(in srgb, var(--accent-soft) 94%, transparent);
   border-color: var(--accent);
   transform: translateY(-4px) scale(1.07);
@@ -420,12 +428,12 @@ a:focus-visible {
 .cookie-surface-links {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
   margin-top: 44px;
 }
-.cookie-surface-links a,
-.cookie-surface-links button {
+.cookie-surface-links a {
   padding: 16px 0;
   border: 0;
   border-bottom: 2px solid #43546a80;
@@ -435,18 +443,39 @@ a:focus-visible {
   cursor: pointer;
 }
 .cookie-surface-links button {
+  --cookie-glass-height: 68px;
+  --cookie-glass-padding: 24px;
+  --cookie-glass-font-size: 24px;
   display: inline-flex;
   align-items: center;
   gap: 12px;
 }
-.cookie-surface a:hover,
-.cookie-surface button:hover {
+.cookie-surface-links button .cookie-rocket {
+  color: var(--accent);
+}
+.cookie-surface a:hover {
   color: #235fa8;
 }
 .cookie-surface a:focus-visible,
 .cookie-surface button:focus-visible {
   outline: 4px solid #235fa8;
   outline-offset: 6px;
+}
+.cookie-surface-links button:focus-visible {
+  outline-color: var(--accent);
+}
+:root:not(.dark) .cookie-surface,
+:root:not(.dark) .cookie-surface h2,
+:root:not(.dark) .cookie-surface-links a {
+  color: #24170f;
+}
+:root:not(.dark) .cookie-surface .cookie-surface-coordinate,
+:root:not(.dark) .cookie-surface-posts a > span {
+  color: #3f2919;
+}
+:root:not(.dark) .cookie-surface a:hover,
+:root:not(.dark) .cookie-surface button:hover {
+  color: #235fa8;
 }
 .cookie-universe[data-traveling] .cookie-canvas,
 .cookie-universe:not([data-destination="home"]) .cookie-canvas {
