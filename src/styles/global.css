@@ -230,18 +230,24 @@ a:focus-visible {
 }
 .cookie-label {
   position: absolute;
-  top: 26px;
+  top: var(--page-top-space);
   left: max(48px, calc((100% - 1240px) / 2));
   z-index: 1;
   pointer-events: none;
   margin: 0;
   color: var(--muted);
   font: 500 10px var(--mono);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.11em;
+  transition: opacity 0.25s, visibility 0.25s;
+}
+.cookie-universe:not([data-destination="home"]) .cookie-label {
+  opacity: 0;
+  visibility: hidden;
 }
 .cookie-viewport {
   position: absolute;
-  inset: 48px 0 74px;
+  /* Labels and controls float above the full scene. */
+  inset: 0;
 }
 .cookie-canvas {
   display: block;
@@ -273,7 +279,10 @@ a:focus-visible {
   display: none;
 }
 .cookie-face button,
-.cookie-surface-links button {
+.cookie-surface-links button,
+.cookie-return,
+.cookie-controls button,
+.cookie-instructions {
   position: relative;
   overflow: hidden;
   display: flex;
@@ -305,7 +314,13 @@ a:focus-visible {
 .cookie-face button::before,
 .cookie-face button::after,
 .cookie-surface-links button::before,
-.cookie-surface-links button::after {
+.cookie-surface-links button::after,
+.cookie-return::before,
+.cookie-return::after,
+.cookie-controls button::before,
+.cookie-controls button::after,
+.cookie-instructions::before,
+.cookie-instructions::after {
   content: "";
   position: absolute;
   height: 2px;
@@ -313,20 +328,28 @@ a:focus-visible {
   background: linear-gradient(90deg, transparent, #ffffffb3, transparent);
 }
 .cookie-face button::before,
-.cookie-surface-links button::before {
+.cookie-surface-links button::before,
+.cookie-return::before,
+.cookie-controls button::before,
+.cookie-instructions::before {
   top: 2px;
   left: 36px;
   right: 56px;
 }
 .cookie-face button::after,
-.cookie-surface-links button::after {
+.cookie-surface-links button::after,
+.cookie-return::after,
+.cookie-controls button::after,
+.cookie-instructions::after {
   bottom: 2px;
   left: 42%;
   right: 36px;
   opacity: 0.55;
 }
 .cookie-face button:is(:hover, :focus-visible),
-.cookie-surface-links button:is(:hover, :focus-visible) {
+.cookie-surface-links button:is(:hover, :focus-visible),
+.cookie-return:is(:hover, :focus-visible),
+.cookie-controls button:enabled:is(:hover, :focus-visible) {
   background-color: color-mix(in srgb, var(--accent-soft) 94%, transparent);
   border-color: var(--accent);
   transform: translateY(-4px) scale(1.07);
@@ -356,18 +379,48 @@ a:focus-visible {
   outline-width: 4px;
   outline-offset: 8px;
 }
+.cookie-return,
+.cookie-controls button,
+.cookie-instructions {
+  --cookie-glass-height: 36px;
+  --cookie-glass-padding: 12px;
+  --cookie-glass-font-size: 12px;
+  border-width: 1px;
+  box-shadow: inset 0 1px 0 #ffffff80, inset 0 -1px 0 #ffffff20, 0 8px 24px #00000026, 0 2px 5px #00000014;
+}
 .cookie-return {
+  --cookie-glass-height: 38px;
+  --cookie-glass-padding: 18px;
   position: absolute;
-  top: 18px;
+  top: calc(var(--page-top-space) - 8px);
   right: max(48px, calc((100% - 1240px) / 2));
   z-index: 2;
-  padding: 10px 16px;
-  border: 1px solid var(--line);
-  border-radius: 99px;
-  color: var(--ink);
-  background: var(--paper);
-  font: 11px var(--mono);
-  cursor: pointer;
+}
+.cookie-return::before,
+.cookie-return::after,
+.cookie-controls button::before,
+.cookie-controls button::after,
+.cookie-instructions::before,
+.cookie-instructions::after {
+  height: 1px;
+}
+.cookie-return::before,
+.cookie-controls button::before,
+.cookie-instructions::before {
+  top: 1px;
+  left: 15%;
+  right: 25%;
+}
+.cookie-return::after,
+.cookie-controls button::after,
+.cookie-instructions::after {
+  bottom: 1px;
+  right: 15%;
+}
+.cookie-return:is(:hover, :focus-visible),
+.cookie-controls button:enabled:is(:hover, :focus-visible) {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: inset 0 1px 0 #ffffffb3, inset 0 -1px 0 #ffffff33, 0 12px 30px #00000040, 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), 0 0 20px color-mix(in srgb, var(--accent) 38%, transparent);
 }
 .cookie-return[hidden],
 .cookie-surface[hidden] {
@@ -424,6 +477,18 @@ a:focus-visible {
 .cookie-surface-posts strong {
   display: block;
   font: 600 34px / 1.4 var(--display);
+}
+.cookie-surface-posts:has(a + a) {
+  margin: 24px 0;
+}
+.cookie-surface-posts:has(a + a) a {
+  padding: 18px 0;
+}
+.cookie-surface-posts:has(a + a) a > span {
+  margin-bottom: 12px;
+}
+.cookie-surface-posts:has(a + a) + .cookie-surface-links {
+  margin-top: 28px;
 }
 .cookie-surface-links {
   display: flex;
@@ -489,6 +554,8 @@ a:focus-visible {
 }
 .cookie-bottom-bar {
   position: absolute;
+  z-index: 2;
+  pointer-events: none;
   left: max(48px, calc((100% - 1240px) / 2));
   right: max(48px, calc((100% - 1240px) / 2));
   bottom: 24px;
@@ -498,9 +565,10 @@ a:focus-visible {
   gap: 20px;
 }
 .cookie-instructions {
-  color: var(--muted);
+  pointer-events: auto;
   font: 10px / 1.8 var(--mono);
   margin: 0;
+  cursor: default;
 }
 .cookie-instructions > span[aria-hidden] {
   margin: 0 8px;
@@ -508,24 +576,15 @@ a:focus-visible {
 }
 .cookie-controls {
   display: flex;
+  pointer-events: auto;
   align-items: center;
   gap: 6px;
 }
 .cookie-controls button {
   min-width: 36px;
   height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 99px;
-  background: var(--paper);
-  color: var(--ink);
-  font: 11px var(--mono);
-  cursor: pointer;
-  transition:
-    border-color 0.2s,
-    background 0.2s;
+  justify-content: center;
 }
-.cookie-controls button:hover,
 .theme-toggle:hover,
 .nav-contact:hover {
   border-color: var(--accent);
@@ -539,7 +598,7 @@ a:focus-visible {
 }
 .cookie-controls button:disabled {
   cursor: default;
-  opacity: 0.4;
+  opacity: 0.55;
 }
 .cookie-status,
 .cookie-no-script {
@@ -586,15 +645,8 @@ a:focus-visible {
     right: 18px;
     font-size: 10px;
   }
-  .cookie-universe:not([data-destination="home"]) .cookie-label {
-    visibility: hidden;
-  }
-  .cookie-viewport {
-    inset: 48px 0 112px;
-  }
   .cookie-label {
     left: 18px;
-    font-size: 9px;
   }
   .cookie-bottom-bar {
     left: 18px;
@@ -1111,6 +1163,8 @@ a:focus-visible {
 }
 .post-meta {
   margin-top: 23px;
+  flex-wrap: wrap;
+  row-gap: 10px;
 }
 .post-content {
   max-width: 700px;
@@ -1172,6 +1226,234 @@ a:focus-visible {
 .post-content pre code {
   padding: 0;
   background: none;
+}
+.post-diagram {
+  margin: 32px 0;
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.post-diagram figcaption {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.diagram-label,
+.diagram-kicker {
+  display: block;
+  color: var(--accent);
+  font: 500 10px/1.6 var(--mono);
+  letter-spacing: 0.07em;
+}
+.post-diagram figcaption > strong {
+  font: 700 21px/1.35 var(--display);
+  letter-spacing: -0.035em;
+}
+.diagram-source,
+.diagram-platform,
+.diagram-state {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+.diagram-source {
+  display: grid;
+  justify-items: center;
+  padding: 18px;
+}
+.diagram-source > strong {
+  margin: 3px 0;
+  font-size: 17px;
+}
+.diagram-source > span:last-child,
+.diagram-platform-label > span,
+.diagram-outcome > span,
+.diagram-state > span:last-child,
+.diagram-steps li div > span {
+  color: var(--muted);
+}
+.diagram-connection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.diagram-connection > span {
+  color: var(--accent);
+  font-size: 21px;
+}
+.diagram-platform {
+  overflow: hidden;
+}
+.diagram-platform-label {
+  display: grid;
+  gap: 3px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.diagram-platform-label > strong {
+  font-size: 17px;
+}
+.diagram-lanes,
+.diagram-policies {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.diagram-lane {
+  min-width: 0;
+  padding: 20px 16px;
+  text-align: center;
+}
+.diagram-lane + .diagram-lane {
+  border-left: 1px solid var(--line);
+}
+.diagram-machine {
+  display: block;
+  margin-top: 6px;
+  font-size: 18px;
+}
+.diagram-outcome {
+  display: grid;
+  gap: 5px;
+  padding: 14px 10px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+}
+.diagram-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 10px;
+  padding: 12px 16px;
+  margin-top: 16px;
+}
+.diagram-state > span:first-child {
+  color: var(--accent);
+  font-size: 22px;
+}
+.post-content .diagram-caption {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.post-content .diagram-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.post-content .diagram-steps li {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  padding: 0 0 22px;
+  margin: 0;
+}
+.diagram-steps li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 17px;
+  top: 36px;
+  bottom: 0;
+  border-left: 1px solid var(--link-line);
+}
+.diagram-step-number {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  height: 36px;
+  border: 1px solid var(--link-line);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--accent);
+  font: 500 11px var(--mono);
+}
+.diagram-steps li div {
+  display: grid;
+  gap: 4px;
+  padding-top: 4px;
+}
+.diagram-steps li strong {
+  font-size: 15px;
+}
+.diagram-policies {
+  gap: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+.diagram-policies strong {
+  display: block;
+  margin-top: 6px;
+}
+.post-content details {
+  margin: 26px 0;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.post-content summary {
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 600;
+}
+.post-content details[open] summary {
+  margin-bottom: 12px;
+}
+.post-content details p:last-child {
+  margin-bottom: 0;
+}
+.name-diagram figcaption > strong {
+  font-size: 30px;
+}
+.name-equation {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 22px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  text-align: center;
+}
+.name-equation > div {
+  display: grid;
+  gap: 8px;
+}
+.name-equation strong {
+  color: var(--accent);
+  font: 700 clamp(30px, 6vw, 46px)/1.2 var(--display);
+  letter-spacing: -0.06em;
+}
+.name-equation span {
+  color: var(--muted);
+}
+.name-equation > span {
+  font-size: 28px;
+}
+@media (max-width: 560px) {
+  .post-diagram {
+    padding: 18px;
+  }
+  .diagram-lanes,
+  .diagram-policies {
+    grid-template-columns: 1fr;
+  }
+  .diagram-lane + .diagram-lane {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .diagram-state > span:last-child {
+    flex-basis: 100%;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .theme-toggle {
