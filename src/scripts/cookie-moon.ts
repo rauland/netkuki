@@ -273,7 +273,8 @@ export function mountCookieMoon(host: HTMLElement) {
   viewport.appendChild(htmlRenderer.domElement);
   const faceObject = new CSS3DObject(face);
   faceObject.position.set(0, 0, 0.6);
-  faceObject.scale.setScalar(0.0095);
+  // The button styles render at 2× size for sharper text in the 3D view.
+  faceObject.scale.setScalar(0.00475);
   cookie.add(faceObject);
   type Destination = "home" | "writing" | "about";
   const surfaces = (["writing", "about"] as const).map((name) => {
