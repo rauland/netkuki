@@ -357,6 +357,8 @@ export function mountCookieMoon(host: HTMLElement) {
   controls.autoRotateSpeed = 0.35;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let paused = reducedMotion.matches;
+  let faceHovered = false;
+  let faceFocused = false;
   let visible = true;
   let disposed = false;
   let frame = 0;
@@ -414,7 +416,7 @@ export function mountCookieMoon(host: HTMLElement) {
   }
 
   function updateMotion() {
-    controls.autoRotate = !paused && destination === "home" && !flight && !leaving && !entrance;
+    controls.autoRotate = !paused && !faceHovered && !faceFocused && destination === "home" && !flight && !leaving && !entrance;
     motionButton.textContent = paused ? "Play" : "Pause";
     motionButton.setAttribute(
       "aria-label",
@@ -487,6 +489,8 @@ export function mountCookieMoon(host: HTMLElement) {
   }
   function flyTo(next: Destination, immediate = false) {
     finishEntrance();
+    faceHovered = false;
+    faceFocused = false;
     // Flush any remaining orbit damping before taking over the camera.
     controls.autoRotate = false;
     controls.enableDamping = false;
@@ -619,9 +623,25 @@ export function mountCookieMoon(host: HTMLElement) {
     paused = true;
     updateMotion();
   }
-  function onFaceInteract() {
-    if (entrance) return;
-    onStart();
+  function onFacePointerEnter() {
+    faceHovered = true;
+    updateMotion();
+    requestRender();
+  }
+  function onFacePointerLeave() {
+    faceHovered = false;
+    updateMotion();
+    requestRender();
+  }
+  function onFaceFocusIn() {
+    faceFocused = true;
+    updateMotion();
+    requestRender();
+  }
+  function onFaceFocusOut(event: FocusEvent) {
+    if (event.relatedTarget instanceof Node && face.contains(event.relatedTarget)) return;
+    faceFocused = false;
+    updateMotion();
     requestRender();
   }
   function renderFace() {
@@ -810,9 +830,10 @@ export function mountCookieMoon(host: HTMLElement) {
   host.addEventListener("click", onAction);
   document.addEventListener("keydown", onEscape);
   canvas.addEventListener("keydown", onKey);
-  face.addEventListener("pointerenter", onFaceInteract);
-  face.addEventListener("pointerdown", onFaceInteract);
-  face.addEventListener("focusin", onFaceInteract);
+  face.addEventListener("pointerenter", onFacePointerEnter);
+  face.addEventListener("pointerleave", onFacePointerLeave);
+  face.addEventListener("focusin", onFaceFocusIn);
+  face.addEventListener("focusout", onFaceFocusOut);
   controls.addEventListener("start", onStart);
   controls.addEventListener("change", requestRender);
   reducedMotion.addEventListener("change", onMotionPreference);
@@ -831,9 +852,10 @@ export function mountCookieMoon(host: HTMLElement) {
     host.removeEventListener("click", onAction);
     document.removeEventListener("keydown", onEscape);
     canvas.removeEventListener("keydown", onKey);
-    face.removeEventListener("pointerenter", onFaceInteract);
-    face.removeEventListener("pointerdown", onFaceInteract);
-    face.removeEventListener("focusin", onFaceInteract);
+    face.removeEventListener("pointerenter", onFacePointerEnter);
+    face.removeEventListener("pointerleave", onFacePointerLeave);
+    face.removeEventListener("focusin", onFaceFocusIn);
+    face.removeEventListener("focusout", onFaceFocusOut);
     reducedMotion.removeEventListener("change", onMotionPreference);
     window.removeEventListener("pageshow", onPageShow);
     window.removeEventListener("pagehide", onPageHide);
