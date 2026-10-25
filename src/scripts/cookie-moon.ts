@@ -364,6 +364,17 @@ export function mountCookieMoon(host: HTMLElement) {
   let baseDistance = 7.4;
   let needsRender = true;
   let destination: Destination = "home";
+  let leaving: {
+    start: number;
+    duration: number;
+    fromPosition: Vector3;
+    toPosition: Vector3;
+    fromTarget: Vector3;
+    toTarget: Vector3;
+    mode: "zoom" | "out";
+    fromChips: number[];
+  } | null = null;
+  let exitTimer: number | undefined;
   let flight: {
     start: number;
     duration: number;
@@ -400,7 +411,7 @@ export function mountCookieMoon(host: HTMLElement) {
   }
 
   function updateMotion() {
-    controls.autoRotate = !paused && destination === "home" && !flight;
+    controls.autoRotate = !paused && destination === "home" && !flight && !leaving;
     motionButton.textContent = paused ? "Play" : "Pause";
     motionButton.setAttribute(
       "aria-label",
@@ -423,6 +434,7 @@ export function mountCookieMoon(host: HTMLElement) {
     renderer.setSize(width, height, false);
     htmlRenderer.setSize(width, height);
     requestRender();
+    if (leaving) return;
     if (destination !== "home" || flight) flyTo(destination, true);
     else controls.update(0);
   }
@@ -519,6 +531,19 @@ export function mountCookieMoon(host: HTMLElement) {
     requestRender();
   }
   function onAction(event: Event) {
+    const link = (event.target as Element).closest<HTMLAnchorElement>("a[data-cookie-exit]");
+    if (link) {
+      const click = event as MouseEvent;
+      // Preserve ordinary link behavior for new tabs, downloads and reduced motion.
+      if (event.defaultPrevented || click.button !== 0 || click.metaKey || click.ctrlKey || click.shiftKey || click.altKey ||
+        (link.target && link.target !== "_self") || link.hasAttribute("download") || reducedMotion.matches) return;
+      const url = new URL(link.href);
+      if (url.origin !== window.location.origin) return;
+      event.preventDefault();
+      if (!leaving) exitTo(url.href, link);
+      return;
+    }
+    if (leaving) return;
     const travelButton = (event.target as Element).closest<HTMLButtonElement>("[data-cookie-destination]");
     if (travelButton) {
       const next = travelButton.dataset.cookieDestination;
@@ -599,7 +624,84 @@ export function mountCookieMoon(host: HTMLElement) {
     renderer.render(scene, camera);
     renderFace();
   }
+  function exitTo(href: string, link: HTMLAnchorElement) {
+    controls.enabled = false;
+    controls.autoRotate = false;
+    const zoomIn = link.dataset.cookieExit === "zoom";
+    const direction = camera.position.clone().sub(controls.target).normalize();
+    const toTarget = controls.target.clone();
+    if (zoomIn) {
+      // Aim at the selected post's screen position on the HTML surface plane.
+      const surface = surfaces.find((entry) => entry.name === destination)!;
+      const bounds = viewport.getBoundingClientRect();
+      const postBounds = link.getBoundingClientRect();
+      const ray = new Vector3(
+        ((postBounds.left + postBounds.width / 2 - bounds.left) / bounds.width) * 2 - 1,
+        1 - ((postBounds.top + postBounds.height / 2 - bounds.top) / bounds.height) * 2,
+        0.5,
+      ).unproject(camera).sub(camera.position).normalize();
+      const normal = new Vector3(0, 0, 1).transformDirection(surface.object.matrixWorld);
+      surface.object.getWorldPosition(toTarget);
+      const distance = toTarget.clone().sub(camera.position).dot(normal) / ray.dot(normal);
+      toTarget.copy(camera.position).addScaledVector(ray, distance);
+    }
+    const toPosition = zoomIn
+      ? toTarget.clone().addScaledVector(direction, camera.position.distanceTo(controls.target) * 0.55)
+      : camera.position.clone().addScaledVector(direction, 1.35);
+    leaving = {
+      start: performance.now(),
+      duration: zoomIn ? 560 : 480,
+      fromPosition: camera.position.clone(),
+      toPosition,
+      fromTarget: controls.target.clone(),
+      toTarget,
+      mode: zoomIn ? "zoom" : "out",
+      fromChips: chipFades.map((batch) => batch.opacity),
+    };
+    host.dataset.leaving = leaving.mode;
+    host.setAttribute("aria-busy", "true");
+    viewport.inert = true;
+    returnButton.disabled = true;
+    buttons.forEach((button) => { button.disabled = true; });
+    announcement.textContent = zoomIn ? "Opening the article." : `Opening ${destination === "writing" ? "Writing" : "About"}.`;
+    // A timer completes navigation even if the tab stops receiving animation frames.
+    exitTimer = window.setTimeout(() => window.location.assign(href), leaving.duration);
+    requestRender();
+  }
+  function cancelExit() {
+    if (!leaving) return;
+    window.clearTimeout(exitTimer);
+    camera.position.copy(leaving.fromPosition);
+    controls.target.copy(leaving.fromTarget);
+    camera.lookAt(controls.target);
+    fadeChips(leaving.fromChips, leaving.fromChips, 1);
+    leaving = null;
+    viewport.style.opacity = "";
+    viewport.inert = false;
+    delete host.dataset.leaving;
+    host.removeAttribute("aria-busy");
+    announcement.textContent = "Back on the cookie. Choose a link to continue exploring.";
+    returnButton.disabled = false;
+    buttons.forEach((button) => {
+      button.disabled = destination !== "home" && button.dataset.cookieAction !== "reset";
+    });
+    controls.enabled = destination === "home";
+    updateMotion();
+    requestRender();
+  }
+  function onPageShow(event: PageTransitionEvent) {
+    if (event.persisted) cancelExit();
+  }
+  function onPageHide(event: PageTransitionEvent) {
+    if (event.persisted) window.clearTimeout(exitTimer);
+    else dispose();
+  }
   function onEscape(event: KeyboardEvent) {
+    if (event.key === "Escape" && leaving) {
+      event.preventDefault();
+      cancelExit();
+      return;
+    }
     if (event.key === "Escape" && (destination !== "home" || flight)) {
       event.preventDefault();
       flyTo("home");
@@ -621,6 +723,17 @@ export function mountCookieMoon(host: HTMLElement) {
   function animate(time: number) {
     if (disposed) return;
     if (visible && !document.hidden) {
+      if (leaving) {
+        const progress = Math.max(0, Math.min((time - leaving.start) / leaving.duration, 1));
+        const eased = 1 - (1 - progress) ** 3;
+        camera.position.lerpVectors(leaving.fromPosition, leaving.toPosition, eased);
+        controls.target.lerpVectors(leaving.fromTarget, leaving.toTarget, eased);
+        camera.lookAt(controls.target);
+        if (leaving.mode === "out") fadeChips(leaving.fromChips, chipFades.map(() => 1), eased);
+        const fade = leaving.mode === "zoom" ? Math.max(0, (progress - 0.4) / 0.6) : progress;
+        viewport.style.opacity = String(1 - fade * fade);
+        requestRender();
+      }
       if (flight) {
         const progress = Math.max(0, Math.min((time - flight.start) / flight.duration, 1));
         const eased = progress * progress * (3 - 2 * progress);
@@ -671,9 +784,12 @@ export function mountCookieMoon(host: HTMLElement) {
   controls.addEventListener("start", onStart);
   controls.addEventListener("change", requestRender);
   reducedMotion.addEventListener("change", onMotionPreference);
+  window.addEventListener("pageshow", onPageShow);
+  window.addEventListener("pagehide", onPageHide);
 
   function dispose() {
     if (disposed) return;
+    cancelExit();
     disposed = true;
     cancelAnimationFrame(frame);
     resizeObserver.disconnect();
@@ -686,6 +802,8 @@ export function mountCookieMoon(host: HTMLElement) {
     face.removeEventListener("pointerdown", onFaceInteract);
     face.removeEventListener("focusin", onFaceInteract);
     reducedMotion.removeEventListener("change", onMotionPreference);
+    window.removeEventListener("pageshow", onPageShow);
+    window.removeEventListener("pagehide", onPageHide);
     controls.dispose();
     scene.traverse((object) => {
       if (object instanceof Mesh || object instanceof Points) {
@@ -713,13 +831,6 @@ export function mountCookieMoon(host: HTMLElement) {
     htmlRenderer.domElement.remove();
   }
   import.meta.hot?.dispose(dispose);
-  window.addEventListener(
-    "pagehide",
-    (event) => {
-      if (!event.persisted) dispose();
-    },
-    { once: true },
-  );
   document.addEventListener("astro:before-swap", dispose, { once: true });
   resize();
   controls.saveState();

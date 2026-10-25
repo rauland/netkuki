@@ -203,6 +203,12 @@ a:focus-visible {
   margin-left: 12px;
   color: var(--accent);
 }
+.cookie-rocket {
+  display: block;
+  width: 1.1em;
+  height: 1.1em;
+  flex: none;
+}
 .cookie-face button:focus-visible,
 .cookie-return:focus-visible {
   outline: 2px solid var(--accent);
@@ -294,6 +300,11 @@ a:focus-visible {
   font: 500 22px var(--mono);
   cursor: pointer;
 }
+.cookie-surface-links button {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
 .cookie-surface a:hover,
 .cookie-surface button:hover {
   color: #235fa8;
@@ -306,6 +317,12 @@ a:focus-visible {
 .cookie-universe[data-traveling] .cookie-canvas,
 .cookie-universe:not([data-destination="home"]) .cookie-canvas {
   cursor: default;
+}
+.cookie-universe[data-leaving] .cookie-label,
+.cookie-universe[data-leaving] .cookie-return,
+.cookie-universe[data-leaving] .cookie-bottom-bar {
+  opacity: 0;
+  transition: opacity 0.35s;
 }
 .cookie-bottom-bar {
   position: absolute;

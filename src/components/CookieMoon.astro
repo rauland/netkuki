@@ -1,5 +1,6 @@
 ---
 import { getCollection } from "astro:content";
+import RocketIcon from "./RocketIcon.astro";
 
 const posts = (await getCollection("blog", ({ data }) => !data.draft))
 	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
@@ -14,8 +15,8 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 			A chocolate-chip cookie floating like a moon. Find more on the Writing and About pages.
 		</canvas>
 		<nav class="cookie-face" data-cookie-face aria-label="Explore Netkuki" hidden>
-			<button type="button" data-cookie-destination="writing">Writing <span aria-hidden="true">↗</span></button>
-			<button type="button" data-cookie-destination="about">About <span aria-hidden="true">↗</span></button>
+			<button type="button" data-cookie-destination="writing">Writing <span aria-hidden="true"><RocketIcon /></span></button>
+			<button type="button" data-cookie-destination="about">About <span aria-hidden="true"><RocketIcon /></span></button>
 		</nav>
 		<article class="cookie-surface" data-cookie-surface="writing" aria-labelledby="cookie-writing-title" hidden>
 			<p class="cookie-surface-coordinate">01 / THE NOTEBOOK</p>
@@ -23,7 +24,7 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 			<p>Things built, lessons learned, and ideas still taking shape.</p>
 			<div class="cookie-surface-posts">
 				{posts.map((post) => (
-					<a href={`/writing/${post.id}/`}>
+					<a href={`/writing/${post.id}/`} data-cookie-exit="zoom">
 						<span>{post.data.pubDate.toLocaleDateString("en-AU", { year: "numeric", month: "short", day: "numeric" })}</span>
 						<strong>{post.data.title} <span aria-hidden="true">↗</span></strong>
 					</a>
@@ -31,8 +32,8 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 				{posts.length === 0 && <p>The next note is in the making. Come back soon.</p>}
 			</div>
 			<div class="cookie-surface-links">
-				<a href="/writing">All writing ↗</a>
-				<button type="button" data-cookie-destination="about">Fly to About →</button>
+				<a href="/writing" data-cookie-exit>All writing ↗</a>
+				<button type="button" data-cookie-destination="about">Fly to About <RocketIcon /></button>
 			</div>
 		</article>
 		<article class="cookie-surface" data-cookie-surface="about" aria-labelledby="cookie-about-title" hidden>
@@ -41,8 +42,8 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 			<p>A systems administrator building secure platforms, automating the repetitive parts, and learning along the way.</p>
 			<p class="cookie-surface-toolkit">Cloud · Linux · Infrastructure<br />Terraform · Ansible · Python</p>
 			<div class="cookie-surface-links">
-				<a href="/about">More about me ↗</a>
-				<button type="button" data-cookie-destination="writing">Fly to Writing →</button>
+				<a href="/about" data-cookie-exit>More about me ↗</a>
+				<button type="button" data-cookie-destination="writing">Fly to Writing <RocketIcon /></button>
 			</div>
 		</article>
 	</div>
