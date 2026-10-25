@@ -363,6 +363,9 @@ export function mountCookieMoon(host: HTMLElement) {
   let lastTime = 0;
   let baseDistance = 7.4;
   let needsRender = true;
+  let entrance: { start: number | null; duration: number; fromY: number } | null = reducedMotion.matches
+    ? null
+    : { start: null, duration: 850, fromY: 0 };
   let destination: Destination = "home";
   let leaving: {
     start: number;
@@ -411,7 +414,7 @@ export function mountCookieMoon(host: HTMLElement) {
   }
 
   function updateMotion() {
-    controls.autoRotate = !paused && destination === "home" && !flight && !leaving;
+    controls.autoRotate = !paused && destination === "home" && !flight && !leaving && !entrance;
     motionButton.textContent = paused ? "Play" : "Pause";
     motionButton.setAttribute(
       "aria-label",
@@ -430,6 +433,11 @@ export function mountCookieMoon(host: HTMLElement) {
     controls.maxDistance = baseDistance * 1.6;
     if (destination === "home" && !flight) {
       camera.position.sub(controls.target).setLength(baseDistance * zoomRatio).add(controls.target);
+    }
+    if (entrance && entrance.start === null) {
+      // Start the whole cookie, including its HTML buttons, below the viewport.
+      entrance.fromY = -camera.position.distanceTo(controls.target) * Math.tan((camera.fov * Math.PI) / 360) - 2.4;
+      cookie.position.y = entrance.fromY;
     }
     renderer.setSize(width, height, false);
     htmlRenderer.setSize(width, height);
@@ -451,6 +459,15 @@ export function mountCookieMoon(host: HTMLElement) {
   function reset() {
     flyTo("home");
   }
+  function finishEntrance() {
+    if (!entrance) return;
+    entrance = null;
+    cookie.position.y = 0;
+    delete host.dataset.entering;
+    renderer.shadowMap.needsUpdate = true;
+    updateMotion();
+    requestRender();
+  }
   function finishFlight() {
     flight = null;
     delete host.dataset.traveling;
@@ -469,6 +486,7 @@ export function mountCookieMoon(host: HTMLElement) {
     requestRender();
   }
   function flyTo(next: Destination, immediate = false) {
+    finishEntrance();
     // Flush any remaining orbit damping before taking over the camera.
     controls.autoRotate = false;
     controls.enableDamping = false;
@@ -531,6 +549,7 @@ export function mountCookieMoon(host: HTMLElement) {
     requestRender();
   }
   function onAction(event: Event) {
+    finishEntrance();
     const link = (event.target as Element).closest<HTMLAnchorElement>("a[data-cookie-exit]");
     if (link) {
       const click = event as MouseEvent;
@@ -570,6 +589,7 @@ export function mountCookieMoon(host: HTMLElement) {
     }
   }
   function onKey(event: KeyboardEvent) {
+    finishEntrance();
     if (destination !== "home" || flight) return;
     const turns: Record<string, [number, number]> = {
       ArrowLeft: [0, -0.12],
@@ -595,10 +615,12 @@ export function mountCookieMoon(host: HTMLElement) {
     }
   }
   function onStart() {
+    finishEntrance();
     paused = true;
     updateMotion();
   }
   function onFaceInteract() {
+    if (entrance) return;
     onStart();
     requestRender();
   }
@@ -612,7 +634,7 @@ export function mountCookieMoon(host: HTMLElement) {
       faceToCamera.copy(camera.position).sub(facePosition).normalize();
       // HTML has no WebGL depth buffer: hide it before the surface turns away.
       object.visible = active && faceNormal.dot(faceToCamera) > 0.35;
-      element.inert = !object.visible || !!flight;
+      element.inert = !object.visible || !!flight || !!entrance;
       element.hidden = !object.visible;
     }
     htmlRenderer.render(scene, camera);
@@ -709,6 +731,7 @@ export function mountCookieMoon(host: HTMLElement) {
   }
   function onMotionPreference() {
     paused = reducedMotion.matches;
+    if (reducedMotion.matches) finishEntrance();
     updateMotion();
   }
   function updateTheme() {
@@ -723,6 +746,15 @@ export function mountCookieMoon(host: HTMLElement) {
   function animate(time: number) {
     if (disposed) return;
     if (visible && !document.hidden) {
+      if (entrance) {
+        entrance.start ??= time;
+        const progress = Math.min((time - entrance.start) / entrance.duration, 1);
+        const eased = 1 - (1 - progress) ** 3;
+        cookie.position.y = entrance.fromY * (1 - eased);
+        renderer.shadowMap.needsUpdate = true;
+        requestRender();
+        if (progress === 1) finishEntrance();
+      }
       if (leaving) {
         const progress = Math.max(0, Math.min((time - leaving.start) / leaving.duration, 1));
         const eased = 1 - (1 - progress) ** 3;
@@ -791,6 +823,7 @@ export function mountCookieMoon(host: HTMLElement) {
     if (disposed) return;
     cancelExit();
     disposed = true;
+    delete host.dataset.entering;
     cancelAnimationFrame(frame);
     resizeObserver.disconnect();
     themeObserver.disconnect();
@@ -842,5 +875,6 @@ export function mountCookieMoon(host: HTMLElement) {
   status.hidden = true;
   face.hidden = false;
   host.dataset.state = "ready";
+  if (entrance) host.dataset.entering = "true";
   frame = requestAnimationFrame(animate);
 }
