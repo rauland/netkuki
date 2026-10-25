@@ -580,6 +580,9 @@ a:focus-visible {
   align-items: center;
   gap: 6px;
 }
+.cookie-universe:not([data-destination="home"]) .cookie-controls {
+  display: none;
+}
 .cookie-controls button {
   min-width: 36px;
   height: 36px;
@@ -641,7 +644,7 @@ a:focus-visible {
     font-size: 68px;
   }
   .cookie-return {
-    top: 43px;
+    top: 12px;
     right: 18px;
     font-size: 10px;
   }
@@ -656,7 +659,7 @@ a:focus-visible {
     gap: 14px;
   }
   .cookie-instructions {
-    font-size: 9px;
+    display: none;
   }
 }
 .inner-page > .eyebrow {

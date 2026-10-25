@@ -370,6 +370,7 @@ export function mountCookieMoon(host: HTMLElement) {
   const returnButton = host.querySelector<HTMLButtonElement>(".cookie-return")!;
   const announcement = host.querySelector<HTMLElement>("[data-cookie-announcement]")!;
   const hint = host.querySelector<HTMLElement>("[data-cookie-hint]")!;
+  const bottomBar = host.querySelector<HTMLElement>(".cookie-bottom-bar")!;
   const status = host.querySelector<HTMLElement>("[data-cookie-status]")!;
   const buttons = host.querySelectorAll<HTMLButtonElement>(
     "[data-cookie-action]",
@@ -732,9 +733,23 @@ export function mountCookieMoon(host: HTMLElement) {
       const normal = new Vector3(0, 0, 1).transformDirection(surface.object.matrixWorld);
       toUp.set(0, 1, 0).transformDirection(surface.object.matrixWorld);
       const tanFov = Math.tan((camera.fov * Math.PI) / 360);
+      // Keep the reading panel between the floating return button and hint,
+      // while the cookie itself still fills the entire canvas behind them.
+      const bounds = viewport.getBoundingClientRect();
+      const top = Math.max(12, returnButton.getBoundingClientRect().bottom - bounds.top + 12);
+      const bottom = Math.min(bounds.height - 12, bottomBar.getBoundingClientRect().top - bounds.top - 12);
+      const availableHeight = Math.max(1, bottom - top);
+      surface.element.style.maxHeight = "";
+      const style = getComputedStyle(surface.element);
+      const naturalMaxHeight = parseFloat(style.maxHeight);
+      const minimumScale = Math.min(bounds.width * 0.8 / surface.element.offsetWidth, 14 / parseFloat(style.fontSize));
+      // On shorter screens, scroll the panel rather than shrinking its text indefinitely.
+      surface.element.style.maxHeight = `${Math.min(naturalMaxHeight, availableHeight / minimumScale)}px`;
       const width = surface.element.offsetWidth * surface.object.scale.x;
       const height = surface.element.offsetHeight * surface.object.scale.y;
-      const distance = Math.max(height / (2 * tanFov * 0.78), width / (2 * tanFov * camera.aspect * 0.8), 2.5);
+      const distance = Math.max(height / (2 * tanFov * (availableHeight / bounds.height)), width / (2 * tanFov * camera.aspect * 0.8), 2.5);
+      const centerOffset = (top + availableHeight / 2) / bounds.height - 0.5;
+      toTarget.addScaledVector(toUp, centerOffset * 2 * tanFov * distance);
       toPosition.copy(toTarget).addScaledVector(normal, distance);
     }
     flight = {
