@@ -457,7 +457,24 @@ a:focus-visible {
   color: #43546a;
 }
 .cookie-surface-toolkit {
-  font: 24px / 1.9 var(--mono);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 36px;
+  padding: 0;
+  list-style: none;
+  font: 22px / 1.4 var(--mono);
+}
+.cookie-surface-toolkit li {
+  padding: 8px 18px;
+  border: 2px solid #43546a50;
+  border-radius: 99px;
+  background: #ffffff26;
+}
+:root:not(.dark) .cookie-surface-toolkit li {
+  border-color: #6b3f2080;
+  background: #fff0d6cc;
+  font-weight: 500;
 }
 .cookie-surface-posts {
   border-top: 2px solid #1c293b30;

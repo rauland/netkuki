@@ -541,6 +541,16 @@ export function mountCookieMoon(host: HTMLElement) {
     fromUp: Vector3;
     toUp: Vector3;
     arc: Quaternion;
+    sideOrbit: {
+      center: Vector3;
+      axis: Vector3;
+      fromDirection: Vector3;
+      angle: number;
+      fromRadius: number;
+      toRadius: number;
+      fromHeight: number;
+      toHeight: number;
+    } | null;
     fromCookie: Quaternion;
     toCookie: Quaternion;
     fromChips: number[];
@@ -702,6 +712,7 @@ export function mountCookieMoon(host: HTMLElement) {
     requestRender();
   }
   function flyTo(next: Destination, immediate = false) {
+    const changingSides = destination !== "home" && next !== "home" && destination !== next;
     finishEntrance();
     faceHovered = false;
     faceFocused = false;
@@ -752,6 +763,26 @@ export function mountCookieMoon(host: HTMLElement) {
       toTarget.addScaledVector(toUp, centerOffset * 2 * tanFov * distance);
       toPosition.copy(toTarget).addScaledVector(normal, distance);
     }
+    let sideOrbit = null;
+    if (changingSides) {
+      // Opposite faces need a side-on orbit, not the shortest arc over a pole.
+      // Keeping the cookie's up axis fixed also prevents lookAt from rolling.
+      const center = cookie.getWorldPosition(new Vector3());
+      const axis = new Vector3(0, 1, 0).applyQuaternion(cookie.quaternion).normalize();
+      const fromRadial = camera.position.clone().sub(center);
+      const toRadial = toPosition.clone().sub(center);
+      const fromHeight = fromRadial.dot(axis);
+      const toHeight = toRadial.dot(axis);
+      fromRadial.addScaledVector(axis, -fromHeight);
+      toRadial.addScaledVector(axis, -toHeight);
+      const fromRadius = fromRadial.length();
+      const toRadius = toRadial.length();
+      fromRadial.normalize();
+      toRadial.normalize();
+      let angle = Math.atan2(axis.dot(new Vector3().crossVectors(fromRadial, toRadial)), fromRadial.dot(toRadial));
+      if (Math.abs(Math.abs(angle) - Math.PI) < 0.001) angle = next === "about" ? Math.PI : -Math.PI;
+      sideOrbit = { center, axis, fromDirection: fromRadial, angle, fromRadius, toRadius, fromHeight, toHeight };
+    }
     flight = {
       start: performance.now(),
       duration: immediate || reducedMotion.matches ? 0 : 1700,
@@ -762,6 +793,7 @@ export function mountCookieMoon(host: HTMLElement) {
       fromUp: camera.up.clone(),
       toUp,
       arc: new Quaternion().setFromUnitVectors(camera.position.clone().normalize(), toPosition.clone().normalize()),
+      sideOrbit,
       fromCookie: cookie.quaternion.clone(),
       toCookie: next === "home" ? homeRotation.clone() : cookie.quaternion.clone(),
       fromChips: chipFades.map((batch) => batch.opacity),
@@ -1023,12 +1055,23 @@ export function mountCookieMoon(host: HTMLElement) {
         const progress = Math.max(0, Math.min((time - flight.start) / flight.duration, 1));
         const eased = progress * progress * (3 - 2 * progress);
         fadeChips(flight.fromChips, flight.toChips, Math.min(progress * 1.8, 1));
-        flightRotation.identity().slerp(flight.arc, eased);
-        flightDirection.copy(flight.fromPosition).normalize().applyQuaternion(flightRotation);
-        const radius = flight.fromPosition.length() * (1 - eased) + flight.toPosition.length() * eased;
-        camera.position.copy(flightDirection).multiplyScalar(radius + Math.sin(Math.PI * eased) * 1.1);
+        if (flight.sideOrbit) {
+          const orbit = flight.sideOrbit;
+          const radius = orbit.fromRadius * (1 - eased) + orbit.toRadius * eased;
+          const height = orbit.fromHeight * (1 - eased) + orbit.toHeight * eased;
+          flightDirection.copy(orbit.fromDirection).applyAxisAngle(orbit.axis, orbit.angle * eased);
+          camera.position.copy(orbit.center)
+            .addScaledVector(flightDirection, radius + Math.sin(Math.PI * eased) * 0.35)
+            .addScaledVector(orbit.axis, height);
+          camera.up.copy(orbit.axis);
+        } else {
+          flightRotation.identity().slerp(flight.arc, eased);
+          flightDirection.copy(flight.fromPosition).normalize().applyQuaternion(flightRotation);
+          const radius = flight.fromPosition.length() * (1 - eased) + flight.toPosition.length() * eased;
+          camera.position.copy(flightDirection).multiplyScalar(radius + Math.sin(Math.PI * eased) * 1.1);
+          camera.up.lerpVectors(flight.fromUp, flight.toUp, eased).normalize();
+        }
         controls.target.lerpVectors(flight.fromTarget, flight.toTarget, eased);
-        camera.up.lerpVectors(flight.fromUp, flight.toUp, eased).normalize();
         camera.lookAt(controls.target);
         if (destination === "home") {
           cookie.quaternion.slerpQuaternions(flight.fromCookie, flight.toCookie, eased);

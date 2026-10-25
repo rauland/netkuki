@@ -34,13 +34,13 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 				{posts.map((post) => (
 					<a href={`/writing/${post.id}/`} data-cookie-exit="zoom">
 						<span>{post.data.pubDate.toLocaleDateString("en-AU", { year: "numeric", month: "short", day: "numeric" })}</span>
-						<strong>{post.data.title} <span aria-hidden="true">↗</span></strong>
+						<strong>{post.data.title}{"\u00a0"}<span aria-hidden="true">↗</span></strong>
 					</a>
 				))}
 				{posts.length === 0 && <p>The next note is in the making. Come back soon.</p>}
 			</div>
 			<div class="cookie-surface-links">
-				<a href="/writing" data-cookie-exit>All writing ↗</a>
+				<a href="/writing" data-cookie-exit>All writing&nbsp;↗</a>
 				<button type="button" data-cookie-destination="about">Fly to About <RocketIcon /></button>
 			</div>
 		</article>
@@ -48,9 +48,11 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 			<p class="cookie-surface-coordinate">02 / THE OTHER SIDE</p>
 			<h2 id="cookie-about-title" tabindex="-1">Hello,<br />I’m rauland.</h2>
 			<p>A systems administrator building secure platforms, automating the repetitive parts, and learning along the way.</p>
-			<p class="cookie-surface-toolkit">Cloud · Linux · Infrastructure<br />Terraform · Ansible · Python</p>
+			<ul class="cookie-surface-toolkit" aria-label="Skills and tools">
+				{["Cloud", "Linux", "Infrastructure", "Terraform", "Ansible", "Python"].map((skill) => <li>{skill}</li>)}
+			</ul>
 			<div class="cookie-surface-links">
-				<a href="/about" data-cookie-exit>More about me ↗</a>
+				<a href="/about" data-cookie-exit>More about me&nbsp;↗</a>
 				<button type="button" data-cookie-destination="writing">Fly to Writing <RocketIcon /></button>
 			</div>
 		</article>
