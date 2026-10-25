@@ -86,6 +86,9 @@ function makeCookie() {
   const edgeColor = new Color("#707070");
   const daySurfaceColor = new Color("#a0612e");
   const dayEdgeColor = new Color("#633618");
+  const dayBackSurfaceColor = new Color("#bd8349");
+  const dayBackEdgeColor = new Color("#7b4926");
+  const backColor = new Color();
   const color = new Color();
   for (let i = 0; i < positions.count; i++) {
     const x = positions.getX(i),
@@ -114,6 +117,10 @@ function makeCookie() {
     color.copy(surfaceColor).lerp(edgeColor, baking);
     colors.set([color.r, color.g, color.b], i * 3);
     color.copy(daySurfaceColor).lerp(dayEdgeColor, baking);
+    // Lift the back's brown palette, blending gently around the edge.
+    const backBlend = Math.max(0, Math.min(1, -z / (radius * 0.35)));
+    backColor.copy(dayBackSurfaceColor).lerp(dayBackEdgeColor, baking);
+    color.lerp(backColor, backBlend * backBlend * (3 - 2 * backBlend));
     dayColors.set([color.r, color.g, color.b], i * 3);
   }
   const cookieColors = new Float32BufferAttribute(colors, 3);
