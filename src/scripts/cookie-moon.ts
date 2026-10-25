@@ -20,6 +20,7 @@ import {
   Points,
   PointsMaterial,
   Quaternion,
+  Raycaster,
   RepeatWrapping,
   RGBAFormat,
   RGBADepthPacking,
@@ -209,10 +210,25 @@ function makeCookie() {
   );
   // Blend only the reading area's fine detail, leaving the overview fully textured.
   const readingFocus = { value: new Vector2(0, 0) };
+  const rainbowStrength = { value: 0 };
+  const rainbowPhase = { value: 0 };
   biscuit.material.onBeforeCompile = (shader) => {
     shader.uniforms.cookieReadingFocus = readingFocus;
+    shader.uniforms.cookieRainbowStrength = rainbowStrength;
+    shader.uniforms.cookieRainbowPhase = rainbowPhase;
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec3 cookiePosition;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\ncookiePosition = position;");
     shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", "#include <common>\nuniform vec2 cookieReadingFocus;")
+      .replace("#include <common>", `#include <common>
+        uniform vec2 cookieReadingFocus;
+        uniform float cookieRainbowStrength;
+        uniform float cookieRainbowPhase;
+        varying vec3 cookiePosition;`)
+      .replace("#include <color_fragment>", `#include <color_fragment>
+        float cookieHue = cookiePosition.x * 0.2 + cookiePosition.y * 0.15 + cookieRainbowPhase;
+        vec3 cookieRainbow = 0.52 + 0.48 * cos(6.2831853 * (cookieHue + vec3(0.0, 0.666667, 0.333333)));
+        diffuseColor.rgb = mix(diffuseColor.rgb, cookieRainbow * sampledDiffuseColor.rgb, cookieRainbowStrength);`)
       .replace("#include <map_fragment>", ShaderChunk.map_fragment.replace(
         "diffuseColor *= sampledDiffuseColor;",
         `float cookieColourMix = 0.96 * dot(texture2D(bumpMap, vMapUv).ba, cookieReadingFocus);
@@ -326,7 +342,18 @@ function makeCookie() {
   function setReadingFocus(front: number, back: number) {
     readingFocus.value.set(front, back);
   }
-  return { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus };
+  function setRainbow(strength: number, phase: number) {
+    rainbowStrength.value = strength;
+    rainbowPhase.value = phase;
+  }
+  // A back chip beside the About paragraph stays clear of the return button and text.
+  const secretIndex = chips.reduce((best, chip, index) => {
+    if (chip.z >= 0 || chipRegions[index] !== "rim") return best;
+    return best < 0 || Math.hypot(chip.x + 0.85, chip.y + 0.31) <
+      Math.hypot(chips[best].x + 0.85, chips[best].y + 0.31) ? index : best;
+  }, -1);
+  const secretChip = chipSlots.get(secretIndex)!;
+  return { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus, setRainbow, secretChip };
 }
 
 export function mountCookieMoon(host: HTMLElement) {
@@ -369,7 +396,7 @@ export function mountCookieMoon(host: HTMLElement) {
   const scene = new Scene();
   const camera = new PerspectiveCamera(38, 1, 0.1, 120);
   camera.position.set(0, 0.05, 7.4);
-  const { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus } = makeCookie();
+  const { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus, setRainbow, secretChip } = makeCookie();
   for (const texture of [grainTexture, crumbTexture]) {
     texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
   }
@@ -490,6 +517,12 @@ export function mountCookieMoon(host: HTMLElement) {
     fromChips: number[];
   } | null = null;
   let exitTimer: number | undefined;
+  let rainbowStart: number | null = null;
+  let rainbowTimer: number | undefined;
+  let chipPress: { id: number; x: number; y: number; dragged: boolean } | null = null;
+  const chipRaycaster = new Raycaster();
+  const chipPointer = new Vector2();
+  const cookieMeshes = cookie.children.filter((object) => object instanceof Mesh);
   let flight: {
     start: number;
     duration: number;
@@ -510,6 +543,64 @@ export function mountCookieMoon(host: HTMLElement) {
 
   function requestRender() {
     needsRender = true;
+  }
+  function endRainbow() {
+    rainbowStart = null;
+    setRainbow(0, 0);
+    delete host.dataset.rainbow;
+    requestRender();
+  }
+  function updateRainbow(time: number) {
+    if (rainbowStart === null) return;
+    const elapsed = Math.max(0, time - rainbowStart);
+    if (elapsed >= 10000) {
+      endRainbow();
+      return;
+    }
+    const blend = Math.min(elapsed / 300, (10000 - elapsed) / 600, 1);
+    setRainbow(blend * blend * (3 - 2 * blend), reducedMotion.matches ? 0 : elapsed / 4000);
+    requestRender();
+  }
+  function isSecretChip(event: PointerEvent) {
+    if (flight || entrance || leaving) return false;
+    const bounds = canvas.getBoundingClientRect();
+    chipPointer.set(
+      ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
+      1 - ((event.clientY - bounds.top) / bounds.height) * 2,
+    );
+    scene.updateMatrixWorld(true);
+    camera.updateMatrixWorld();
+    chipRaycaster.setFromCamera(chipPointer, camera);
+    // Pick the nearest visible surface, so the biscuit blocks clicks from the front.
+    const hit = chipRaycaster.intersectObjects(cookieMeshes.filter((mesh) => mesh.visible), false)[0];
+    return hit?.object === secretChip.mesh && hit.instanceId === secretChip.index;
+  }
+  function onChipPointerDown(event: PointerEvent) {
+    if (!event.isPrimary || event.button !== 0) {
+      chipPress = null;
+      return;
+    }
+    chipPress = { id: event.pointerId, x: event.clientX, y: event.clientY, dragged: false };
+  }
+  function onChipPointerMove(event: PointerEvent) {
+    if (chipPress && Math.hypot(event.clientX - chipPress.x, event.clientY - chipPress.y) > 6) {
+      chipPress.dragged = true;
+    }
+  }
+  function onChipPointerCancel() {
+    chipPress = null;
+  }
+  function onChipPointerUp(event: PointerEvent) {
+    const press = chipPress;
+    chipPress = null;
+    if (!press || press.id !== event.pointerId || press.dragged ||
+      Math.hypot(event.clientX - press.x, event.clientY - press.y) > 6 || !isSecretChip(event)) return;
+    rainbowStart = performance.now();
+    window.clearTimeout(rainbowTimer);
+    rainbowTimer = window.setTimeout(endRainbow, 10000);
+    host.dataset.rainbow = "true";
+    announcement.textContent = "You found the rainbow cookie! Rainbow colours for ten seconds.";
+    requestRender();
   }
   function fadeChips(from: number[], to: number[], progress: number) {
     const eased = progress * progress * (3 - 2 * progress);
@@ -885,6 +976,7 @@ export function mountCookieMoon(host: HTMLElement) {
   function animate(time: number) {
     if (disposed) return;
     if (visible && !document.hidden) {
+      updateRainbow(time);
       if (entrance) {
         entrance.start ??= time;
         const progress = Math.min((time - entrance.start) / entrance.duration, 1);
@@ -949,6 +1041,10 @@ export function mountCookieMoon(host: HTMLElement) {
   host.addEventListener("click", onAction);
   document.addEventListener("keydown", onEscape);
   canvas.addEventListener("keydown", onKey);
+  canvas.addEventListener("pointerdown", onChipPointerDown);
+  canvas.addEventListener("pointermove", onChipPointerMove);
+  canvas.addEventListener("pointerup", onChipPointerUp);
+  canvas.addEventListener("pointercancel", onChipPointerCancel);
   face.addEventListener("pointerenter", onFacePointerEnter);
   face.addEventListener("pointerleave", onFacePointerLeave);
   face.addEventListener("focusin", onFaceFocusIn);
@@ -963,6 +1059,8 @@ export function mountCookieMoon(host: HTMLElement) {
     if (disposed) return;
     cancelExit();
     disposed = true;
+    window.clearTimeout(rainbowTimer);
+    delete host.dataset.rainbow;
     delete host.dataset.entering;
     cancelAnimationFrame(frame);
     resizeObserver.disconnect();
@@ -971,6 +1069,10 @@ export function mountCookieMoon(host: HTMLElement) {
     host.removeEventListener("click", onAction);
     document.removeEventListener("keydown", onEscape);
     canvas.removeEventListener("keydown", onKey);
+    canvas.removeEventListener("pointerdown", onChipPointerDown);
+    canvas.removeEventListener("pointermove", onChipPointerMove);
+    canvas.removeEventListener("pointerup", onChipPointerUp);
+    canvas.removeEventListener("pointercancel", onChipPointerCancel);
     face.removeEventListener("pointerenter", onFacePointerEnter);
     face.removeEventListener("pointerleave", onFacePointerLeave);
     face.removeEventListener("focusin", onFaceFocusIn);
