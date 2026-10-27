@@ -20,7 +20,7 @@ const pageTitle = `${post.data.title} — Netkuki`;
 		<header class="post-header">
 			<div class="post-heading-nav">
 				<p class="eyebrow"><span class="status-dot"></span> THE NOTEBOOK</p>
-				<a class="back-link" href="/writing">← All writing</a>
+				<a class="back-link" href="/writing/">← All writing</a>
 			</div>
 			<h1 class="inner-title">{post.data.title}</h1>
 			{post.data.description && <p class="inner-lede">{post.data.description}</p>}
@@ -31,6 +31,6 @@ const pageTitle = `${post.data.title} — Netkuki`;
 			</div>
 		</header>
 		<article class="post-content"><Content /></article>
-		<a class="back-link" href="/writing">← All writing</a>
+		<a class="back-link" href="/writing/">← All writing</a>
 	</main>
 </BaseLayout>

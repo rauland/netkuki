@@ -7,8 +7,8 @@ const activePath = currentPath.startsWith("/writing/") ? "/writing" : currentPat
 		<a class="wordmark" href="/" aria-label="Netkuki home"><span class="wordmark-mark">n<span>.</span></span><span class="wordmark-name">netkuki</span></a>
 		<div class="nav-links">
 			<a href="/" aria-current={activePath === "/" ? "page" : undefined}>Home</a>
-			<a href="/writing" aria-current={activePath === "/writing" ? "page" : undefined}>Writing</a>
-			<a href="/about" aria-current={activePath === "/about" ? "page" : undefined}>About</a>
+			<a href="/writing/" aria-current={activePath === "/writing" ? "page" : undefined}>Writing</a>
+			<a href="/about/" aria-current={activePath === "/about" ? "page" : undefined}>About</a>
 		</div>
 		<div class="nav-actions">
 			<button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch to dark mode" title="Switch to dark mode">

@@ -23,7 +23,7 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 				))}
 			</div>
 		) : (
-			<div class="note-card"><span class="note-number">THE NOTEBOOK</span><div><h2>The next note is in the making.</h2><p>There aren’t any notes here yet. Come back soon.</p><a class="arrow-link" href="/about">More about me <span aria-hidden="true">↗</span></a></div><span class="note-sparkle" aria-hidden="true">✳</span></div>
+			<div class="note-card"><span class="note-number">THE NOTEBOOK</span><div><h2>The next note is in the making.</h2><p>There aren’t any notes here yet. Come back soon.</p><a class="arrow-link" href="/about/">More about me <span aria-hidden="true">↗</span></a></div><span class="note-sparkle" aria-hidden="true">✳</span></div>
 		)}
 		<a class="back-link" href="/">← Back to the cookie</a>
 	</main>

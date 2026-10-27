@@ -7,7 +7,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   output: 'static',
   redirects: {
-    '/blog': '/writing',
+    '/blog': '/writing/',
     '/blog/[...slug]': '/writing/[...slug]',
   },
   vite: {

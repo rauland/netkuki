@@ -40,7 +40,7 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 				{posts.length === 0 && <p>The next note is in the making. Come back soon.</p>}
 			</div>
 			<div class="cookie-surface-links">
-				<a href="/writing" data-cookie-exit>All writing&nbsp;↗</a>
+				<a href="/writing/" data-cookie-exit>All writing&nbsp;↗</a>
 				<button type="button" data-cookie-destination="about">Fly to About <RocketIcon /></button>
 			</div>
 		</article>
@@ -52,7 +52,7 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 				{["Cloud", "Linux", "Infrastructure", "Terraform", "Ansible", "Python"].map((skill) => <li>{skill}</li>)}
 			</ul>
 			<div class="cookie-surface-links">
-				<a href="/about" data-cookie-exit>More about me&nbsp;↗</a>
+				<a href="/about/" data-cookie-exit>More about me&nbsp;↗</a>
 				<button type="button" data-cookie-destination="writing">Fly to Writing <RocketIcon /></button>
 			</div>
 		</article>
@@ -71,7 +71,7 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 			<button type="button" data-cookie-action="reset" aria-label="Reset cookie view" disabled>Reset</button>
 		</div>
 	</div>
-	<noscript><p class="cookie-no-script">Enable JavaScript to explore the cookie in 3D. You can still visit <a href="/writing">Writing</a> and <a href="/about">About</a>.</p></noscript>
+	<noscript><p class="cookie-no-script">Enable JavaScript to explore the cookie in 3D. You can still visit <a href="/writing/">Writing</a> and <a href="/about/">About</a>.</p></noscript>
 </section>
 
 <script>
