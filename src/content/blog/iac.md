@@ -23,7 +23,7 @@ Proxmox provides the home for the virtual machines. Terraform creates those mach
 The Kubernetes side now uses Talos Linux. Kubernetes manages applications running in containers, while Talos provides the operating system for those machines. It has its own setup process, separate from the services Ansible looks after.
 
 <figure class="post-diagram" aria-labelledby="iac-architecture-title">
-  <figcaption><span class="diagram-label">01 / THE BIG PICTURE</span><strong id="iac-architecture-title">From written instructions to running services.</strong></figcaption>
+  <figcaption><span class="diagram-label">THE BIG PICTURE</span><strong id="iac-architecture-title">From written instructions to running services.</strong></figcaption>
   <div class="diagram-source"><span class="diagram-kicker">THE STARTING POINT</span><strong>Configuration in GitHub</strong><span>What to build, and how to set it up</span></div>
   <div class="diagram-connection"><span aria-hidden="true">↓</span> Automation follows those instructions</div>
   <div class="diagram-platform">
@@ -53,7 +53,7 @@ A change starts in the repository. Automated checks look for problems, and a pre
 Development changes can deploy automatically after they reach the main branch. Production changes require approval. This gives me room to experiment while keeping a deliberate review step for production.
 
 <figure class="post-diagram" aria-labelledby="iac-delivery-title">
-  <figcaption><span class="diagram-label">02 / MAKING A CHANGE</span><strong id="iac-delivery-title">A repeatable path from idea to update.</strong></figcaption>
+  <figcaption><span class="diagram-label">MAKING A CHANGE</span><strong id="iac-delivery-title">A repeatable path from idea to update.</strong></figcaption>
   <ol class="diagram-steps">
     <li><span class="diagram-step-number" aria-hidden="true">01</span><div><strong>Describe the change</strong><span>Update the files that define the platform.</span></div></li>
     <li><span class="diagram-step-number" aria-hidden="true">02</span><div><strong>Check and preview</strong><span>Look for problems and see what would change.</span></div></li>

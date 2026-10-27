@@ -8,9 +8,9 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 
 <BaseLayout pageTitle="Writing — Netkuki">
 	<main class="inner-page">
-		<p class="eyebrow"><span class="status-dot"></span> NOTES FROM THE OPEN WEB</p>
-		<h1 class="inner-title">A place for<br /><span>unfinished thoughts.</span></h1>
-		<p class="inner-lede">Little things learned along the way. Longer things when they need more room. Always a work in progress.</p>
+		<p class="eyebrow"><span class="status-dot"></span> THE NOTEBOOK</p>
+		<h1 class="inner-title">What I’m<br /><span>working on.</span></h1>
+		<p class="inner-lede">Things built, lessons learned, and ideas still taking shape. Some notes are short, some need more room, and all of them stay open to revision.</p>
 		{posts.length > 0 ? (
 			<div class="article-list">
 				{posts.map((post) => (
@@ -23,8 +23,8 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 				))}
 			</div>
 		) : (
-			<div class="note-card"><span class="note-number">THE NOTEBOOK</span><div><h2>Good things take a little time.</h2><p>There aren’t any notes here just yet. I’m working on the next one.</p><a class="arrow-link" href="/about">A little about me <span aria-hidden="true">↗</span></a></div><span class="note-sparkle" aria-hidden="true">✳</span></div>
+			<div class="note-card"><span class="note-number">THE NOTEBOOK</span><div><h2>The next note is in the making.</h2><p>There aren’t any notes here yet. Come back soon.</p><a class="arrow-link" href="/about">More about me <span aria-hidden="true">↗</span></a></div><span class="note-sparkle" aria-hidden="true">✳</span></div>
 		)}
-		<a class="back-link" href="/">← Back to the beginning</a>
+		<a class="back-link" href="/">← Back to the cookie</a>
 	</main>
 </BaseLayout>

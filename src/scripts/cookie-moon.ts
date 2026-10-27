@@ -729,7 +729,7 @@ export function mountCookieMoon(host: HTMLElement) {
     returnButton.hidden = next === "home";
     hint.textContent = next === "home"
       ? "Pick a place to fly to · Drag to explore"
-      : `${next === "writing" ? "01 / Writing" : "02 / About"} · Escape to fly back`;
+      : `${next === "writing" ? "Writing" : "About"} · Escape to fly back`;
     buttons.forEach((button) => {
       button.disabled = next !== "home" && button.dataset.cookieAction !== "reset";
     });

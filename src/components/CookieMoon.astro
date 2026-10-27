@@ -8,7 +8,7 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 ---
 
 <section class="cookie-universe" data-cookie-moon data-destination="home" aria-label="Cookie moon">
-	<p class="cookie-label"><span class="status-dot" aria-hidden="true"></span> A LITTLE SPACE FOR CURIOSITY</p>
+	<p class="cookie-label"><span class="status-dot" aria-hidden="true"></span> THINGS I BUILD AND LEARN</p>
 	<div class="cookie-orbits" aria-hidden="true">
 		<div class="cookie-orbit cookie-orbit-writing">
 			<span class="cookie-orbit-marker"><span class="cookie-orbit-dot"></span></span>
@@ -27,8 +27,8 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 			<button type="button" data-cookie-destination="about">About <span aria-hidden="true"><RocketIcon /></span></button>
 		</nav>
 		<article class="cookie-surface" data-cookie-surface="writing" aria-labelledby="cookie-writing-title" hidden>
-			<p class="cookie-surface-coordinate">01 / THE NOTEBOOK</p>
-			<h2 id="cookie-writing-title" tabindex="-1">Notes from<br />a little world.</h2>
+			<p class="cookie-surface-coordinate">THE NOTEBOOK</p>
+			<h2 id="cookie-writing-title" tabindex="-1">What I’m<br />working on.</h2>
 			<p>Things built, lessons learned, and ideas still taking shape.</p>
 			<div class="cookie-surface-posts">
 				{posts.map((post) => (
@@ -45,7 +45,7 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 			</div>
 		</article>
 		<article class="cookie-surface" data-cookie-surface="about" aria-labelledby="cookie-about-title" hidden>
-			<p class="cookie-surface-coordinate">02 / THE OTHER SIDE</p>
+			<p class="cookie-surface-coordinate">THE OTHER SIDE</p>
 			<h2 id="cookie-about-title" tabindex="-1">Hello,<br />I’m rauland.</h2>
 			<p>A systems administrator building secure platforms, automating the repetitive parts, and learning along the way.</p>
 			<ul class="cookie-surface-toolkit" aria-label="Skills and tools">
@@ -57,7 +57,7 @@ const posts = (await getCollection("blog", ({ data }) => !data.draft))
 			</div>
 		</article>
 	</div>
-	<p class="cookie-status" data-cookie-status role="status">Baking a little moon…</p>
+	<p class="cookie-status" data-cookie-status role="status">Baking the cookie…</p>
 	<p class="visually-hidden" data-cookie-announcement role="status" aria-live="polite"></p>
 	<div class="cookie-bottom-bar">
 		<p id="cookie-instructions" class="cookie-instructions">
