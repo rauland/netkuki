@@ -9,6 +9,8 @@ const { pageTitle = "Netkuki" } = Astro.props;
 <!doctype html>
 <html lang="en">
 	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<script is:inline>
 			try {
 				const savedTheme = localStorage.getItem("theme");
@@ -18,10 +20,13 @@ const { pageTitle = "Netkuki" } = Astro.props;
 				document.documentElement.classList.toggle("dark", window.matchMedia("(prefers-color-scheme: dark)").matches);
 			}
 		</script>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<style is:inline>
+			/* Paint the theme background before the main stylesheet loads, so navigation doesn't flash. */
+			html { color-scheme: light; background: #f6f8fc; }
+			html.dark { color-scheme: dark; background: #111923; }
+		</style>
 		<meta name="theme-color" content="#f6f8fc" />
-		<meta name="description" content="Netkuki is a personal corner of the internet for things made, things learned, and ideas worth sharing." />
+		<meta name="description" content="Netkuki: notes from rauland on the things I build and learn, from cloud platforms, Linux and automation to a cookie you can fly around." />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
