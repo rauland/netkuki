@@ -728,14 +728,30 @@ a:focus-visible {
 .eyebrow {
   color: var(--muted);
 }
+/* A tiny cookie, in the same palettes as the 3D one: baked by day, a grey moon by night. */
 .status-dot {
+  --dough: #b9b9b9;
+  --dough-edge: #707070;
+  --chip: #292929;
   display: inline-block;
-  width: 7px;
-  height: 7px;
+  flex: none;
+  width: 11px;
+  height: 11px;
   margin-right: 8px;
+  vertical-align: -1px;
   border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 4px var(--accent-soft);
+  background:
+    radial-gradient(circle at 30% 42%, var(--chip) 0 1.3px, transparent 1.6px),
+    radial-gradient(circle at 63% 26%, var(--chip) 0 0.9px, transparent 1.2px),
+    radial-gradient(circle at 70% 64%, var(--chip) 0 1.2px, transparent 1.5px),
+    radial-gradient(circle at 38% 78%, var(--chip) 0 0.7px, transparent 1px),
+    radial-gradient(circle at 38% 32%, var(--dough) 45%, var(--dough-edge));
+  box-shadow: 0 1px 2px #00000040;
+}
+:root:not(.dark) .status-dot {
+  --dough: #b8773f;
+  --dough-edge: #633618;
+  --chip: #2b130b;
 }
 .hero-actions {
   display: flex;
