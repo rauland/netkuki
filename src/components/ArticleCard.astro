@@ -1,0 +1,16 @@
+---
+import { formatDate, readingMinutes, type Post } from "../lib/posts";
+
+interface Props {
+	post: Post;
+}
+
+const { post } = Astro.props;
+---
+
+<a class="article-card" href={`/writing/${post.id}/`}>
+	<div class="article-meta"><time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time><span>{readingMinutes(post.body)} min read</span><span>{post.data.tags.join(" · ")}</span></div>
+	<h2>{post.data.title}</h2>
+	{post.data.description && <p>{post.data.description}</p>}
+	<span class="article-arrow" aria-hidden="true">↗</span>
+</a>

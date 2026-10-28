@@ -1,30 +1,34 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { getCollection } from "astro:content";
+import ArticleCard from "../components/ArticleCard.astro";
+import { getPublishedPosts, groupByTag } from "../lib/posts";
 
-const posts = (await getCollection("blog", ({ data }) => !data.draft))
-	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+const posts = await getPublishedPosts();
+const tags = groupByTag(posts);
 ---
 
-<BaseLayout pageTitle="Writing — Netkuki">
+<BaseLayout pageTitle="Writing — Netkuki" description="Things built, lessons learned, and ideas still taking shape: notes from rauland on cloud platforms, Linux, automation and the web.">
 	<main class="inner-page">
 		<p class="eyebrow"><span class="status-dot"></span> THE NOTEBOOK</p>
 		<h1 class="inner-title">What I’m<br /><span>working on.</span></h1>
 		<p class="inner-lede">Things built, lessons learned, and ideas still taking shape. Some notes are short, some need more room, and all of them stay open to revision.</p>
+		{tags.length > 0 && (
+			<nav class="tag-nav" aria-label="Browse writing by tag">
+				<ul class="skill-list tag-list">
+					{tags.map(({ slug, tag }) => <li><a href={`/writing/tags/${slug}/`}>{tag}</a></li>)}
+				</ul>
+			</nav>
+		)}
 		{posts.length > 0 ? (
 			<div class="article-list">
-				{posts.map((post) => (
-					<a class="article-card" href={`/writing/${post.id}/`}>
-						<div class="article-meta"><time datetime={post.data.pubDate.toISOString()}>{post.data.pubDate.toLocaleDateString("en-AU", { year: "numeric", month: "short", day: "numeric" })}</time><span>{post.data.tags.join(" · ")}</span></div>
-						<h2>{post.data.title}</h2>
-						{post.data.description && <p>{post.data.description}</p>}
-						<span class="article-arrow" aria-hidden="true">↗</span>
-					</a>
-				))}
+				{posts.map((post) => <ArticleCard post={post} />)}
 			</div>
 		) : (
 			<div class="note-card"><span class="note-number">THE NOTEBOOK</span><div><h2>The next note is in the making.</h2><p>There aren’t any notes here yet. Come back soon.</p><a class="arrow-link" href="/about/">More about me <span aria-hidden="true">↗</span></a></div><span class="note-sparkle" aria-hidden="true">✳</span></div>
 		)}
-		<a class="back-link" href="/">← Back to the cookie</a>
+		<div class="writing-footer-links">
+			<a class="back-link" href="/">← Back to the cookie</a>
+			<a class="back-link" href="/rss.xml">RSS feed</a>
+		</div>
 	</main>
 </BaseLayout>

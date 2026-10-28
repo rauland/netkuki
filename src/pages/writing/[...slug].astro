@@ -1,21 +1,29 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { getCollection, render } from "astro:content";
+import { render } from "astro:content";
+import { formatDate, getPublishedPosts, readingMinutes, tagSlug, type Post } from "../../lib/posts";
 
 export async function getStaticPaths() {
-	const posts = await getCollection("blog", ({ data }) => !data.draft);
-	return posts.map((post) => ({
+	// Newest first, so the next-newer post is at index - 1 and the older one at index + 1.
+	const posts = await getPublishedPosts();
+	return posts.map((post, index) => ({
 		params: { slug: post.id },
-		props: { post },
+		props: { post, newer: posts[index - 1], older: posts[index + 1] },
 	}));
 }
 
-const { post } = Astro.props;
+interface Props {
+	post: Post;
+	newer?: Post;
+	older?: Post;
+}
+
+const { post, newer, older } = Astro.props;
 const { Content } = await render(post);
 const pageTitle = `${post.data.title} — Netkuki`;
 ---
 
-<BaseLayout pageTitle={pageTitle}>
+<BaseLayout pageTitle={pageTitle} description={post.data.description} type="article" publishedTime={post.data.pubDate}>
 	<main class="inner-page post-page">
 		<header class="post-header">
 			<div class="post-heading-nav">
@@ -25,12 +33,35 @@ const pageTitle = `${post.data.title} — Netkuki`;
 			<h1 class="inner-title">{post.data.title}</h1>
 			{post.data.description && <p class="inner-lede">{post.data.description}</p>}
 			<div class="post-meta">
-				<time datetime={post.data.pubDate.toISOString()}>{post.data.pubDate.toLocaleDateString("en-AU", { year: "numeric", month: "long", day: "numeric" })}</time>
-				{post.data.updatedDate && <span>Updated <time datetime={post.data.updatedDate.toISOString()}>{post.data.updatedDate.toLocaleDateString("en-AU", { year: "numeric", month: "short", day: "numeric" })}</time></span>}
-				{post.data.tags.length > 0 && <span>{post.data.tags.join(" · ")}</span>}
+				<time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate, "long")}</time>
+				{post.data.updatedDate && <span>Updated <time datetime={post.data.updatedDate.toISOString()}>{formatDate(post.data.updatedDate)}</time></span>}
+				<span>{readingMinutes(post.body)} min read</span>
+				{post.data.tags.length > 0 && (
+					<span class="post-tags">
+						{post.data.tags.map((tag, i) => (
+							<>{i > 0 && " · "}{tagSlug(tag) ? <a href={`/writing/tags/${tagSlug(tag)}/`}>{tag}</a> : tag}</>
+						))}
+					</span>
+				)}
 			</div>
 		</header>
 		<article class="post-content"><Content /></article>
+		{(newer || older) && (
+			<nav class="post-pager" aria-label="More writing">
+				{older ? (
+					<a class="post-pager-link" href={`/writing/${older.id}/`} rel="prev">
+						<span class="note-number">← PREVIOUS</span>
+						<strong>{older.data.title}</strong>
+					</a>
+				) : <span />}
+				{newer && (
+					<a class="post-pager-link post-pager-next" href={`/writing/${newer.id}/`} rel="next">
+						<span class="note-number">NEXT →</span>
+						<strong>{newer.data.title}</strong>
+					</a>
+				)}
+			</nav>
+		)}
 		<a class="back-link" href="/writing/">← All writing</a>
 	</main>
 </BaseLayout>

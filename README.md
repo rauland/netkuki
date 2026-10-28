@@ -26,8 +26,10 @@ Open the local URL printed by Astro (usually `http://localhost:4321`). The devel
 ## Pages
 
 - `/` — Home page and introduction to the site.
-- `/writing` — Writing page, with articles at `/writing/<slug>/`.
+- `/writing` — Writing page, with articles at `/writing/<slug>/` and tag pages at `/writing/tags/<tag>/`.
 - `/about` — About Netkuki and the tools behind it.
+- `/rss.xml` — RSS feed of published writing. A sitemap is generated at `/sitemap-index.xml`.
+- `404` — Not-found page, served by Cloudflare for unknown routes.
 
 ## Project structure
 

@@ -1,11 +1,14 @@
 // @ts-check
 import { defineConfig, fontProviders } from 'astro/config';
 
+import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 
 // https://astro.build/config
 export default defineConfig({
+  site: 'https://netkuki.com',
   output: 'static',
+  integrations: [sitemap()],
   // Self-host fonts so first paint isn't blocked on a third-party stylesheet.
   fonts: [
     { provider: fontProviders.google(), name: 'DM Sans', cssVariable: '--font-dm-sans', weights: [400, 500, 600, 700], styles: ['normal'], fallbacks: ['sans-serif'] },
