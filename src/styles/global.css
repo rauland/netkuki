@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans);
   color: var(--ink);
   background: var(--paper);
   font-synthesis: none;
@@ -18,8 +18,8 @@
   --surface: #edf2f8;
   --code: #e7eef8;
   --link-line: #a6bad4;
-  --mono: "DM Mono", monospace;
-  --display: "Manrope", sans-serif;
+  --mono: var(--font-dm-mono);
+  --display: var(--font-manrope);
   --page-top-space: 48px;
 }
 * {
@@ -435,7 +435,7 @@ a:focus-visible {
   padding: 56px;
   color: #1c293b;
   backface-visibility: hidden;
-  font: 32px / 1.65 "DM Sans", sans-serif;
+  font: 32px / 1.65 var(--font-dm-sans);
   text-align: left;
 }
 .cookie-surface h2 {
