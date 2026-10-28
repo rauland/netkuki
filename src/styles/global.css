@@ -157,77 +157,6 @@ a:focus-visible {
     radial-gradient(ellipse at 80% 74%, #c9e2fa80, transparent 62%),
     linear-gradient(145deg, #eff5fc, #faf9f3 52%, #edf4fc);
 }
-.cookie-orbits {
-  display: none;
-}
-:root:not(.dark) .cookie-orbits {
-  display: block;
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  transition: opacity 0.25s;
-}
-.cookie-orbit {
-  position: absolute;
-  top: 48%;
-  left: 50%;
-  width: min(1160px, 140vw);
-  height: clamp(260px, 42vw, 480px);
-  transform: translate(-50%, -50%) rotate(-23deg);
-}
-.cookie-orbit-about {
-  width: min(1400px, 160vw);
-  height: clamp(300px, 52vw, 590px);
-  transform: translate(-50%, -50%) rotate(28deg);
-}
-.cookie-orbit-marker {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  offset-path: ellipse(50% 50% at 50% 50%);
-  offset-rotate: 0deg;
-  offset-anchor: center;
-  animation: cookie-orbit-travel 42s linear -12.6s infinite;
-}
-.cookie-orbit-about .cookie-orbit-marker {
-  animation-duration: 58s;
-  animation-delay: -17s;
-  animation-direction: reverse;
-}
-.cookie-orbit-dot {
-  width: 9px;
-  height: 9px;
-  border: 2px solid var(--paper);
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 4px #2563b812, 0 0 14px #2563b833;
-}
-.cookie-universe[data-motion="paused"] .cookie-orbit-marker {
-  animation-play-state: paused;
-}
-.cookie-universe:not([data-state="ready"]) .cookie-orbits,
-.cookie-universe:not([data-destination="home"]) .cookie-orbits,
-.cookie-universe[data-traveling] .cookie-orbits,
-.cookie-universe[data-leaving] .cookie-orbits {
-  opacity: 0;
-  visibility: hidden;
-}
-@keyframes cookie-orbit-travel {
-  from { offset-distance: 0%; }
-  to { offset-distance: 100%; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .cookie-orbit-marker { animation: none; offset-distance: 30%; }
-  .cookie-orbit-about .cookie-orbit-marker { animation: none; offset-distance: 70%; }
-}
-@supports not (offset-path: ellipse(50% 50% at 50% 50%)) {
-  :root:not(.dark) .cookie-orbits { display: none; }
-}
 .cookie-label {
   position: absolute;
   top: var(--page-top-space);
@@ -263,10 +192,15 @@ a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -6px;
 }
-.cookie-html {
+.cookie-html,
+.cookie-planets {
   position: absolute;
   inset: 0;
   pointer-events: none;
+}
+.cookie-planets {
+  width: 100%;
+  height: 100%;
 }
 .cookie-face {
   /* Size and flag positions are set by the script to match the 3D poles. */

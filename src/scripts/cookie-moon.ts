@@ -1,11 +1,13 @@
 import {
   ACESFilmicToneMapping,
   BufferGeometry,
+  CapsuleGeometry,
   Color,
   CylinderGeometry,
   DataTexture,
   DirectionalLight,
   DoubleSide,
+  Euler,
   Float32BufferAttribute,
   Group,
   HemisphereLight,
@@ -32,6 +34,7 @@ import {
   ShaderChunk,
   SphereGeometry,
   SRGBColorSpace,
+  TorusGeometry,
   Vector2,
   Vector3,
   WebGLRenderer,
@@ -367,6 +370,142 @@ function makeCookie() {
   return { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus, setRainbow, secretChip };
 }
 
+const sprinkleColors = ["#f58ab8", "#6fbcef", "#ffc94d", "#9b87f5", "#ffffff"];
+
+/** A frosted donut planet, tilted so its icing and hole catch the light. */
+function makeDonut(random: () => number) {
+  const donut = new Group();
+  const dough = new Mesh(
+    new TorusGeometry(0.17, 0.08, 20, 40),
+    new MeshStandardMaterial({ color: "#d8924e", roughness: 0.75 }),
+  );
+  // A flattened, slightly raised torus covers the top half like poured icing.
+  const icing = new Mesh(
+    new TorusGeometry(0.17, 0.083, 20, 40),
+    new MeshStandardMaterial({ color: "#f79cc3", roughness: 0.38 }),
+  );
+  icing.scale.z = 0.62;
+  icing.position.z = 0.032;
+  donut.add(dough, icing);
+  const sprinkleGeometry = new CapsuleGeometry(0.009, 0.034, 3, 6);
+  for (let i = 0; i < 18; i++) {
+    const angle = random() * Math.PI * 2;
+    const radius = 0.17 + (random() - 0.5) * 0.09;
+    const sprinkle = new Mesh(
+      sprinkleGeometry,
+      new MeshStandardMaterial({ color: sprinkleColors[i % sprinkleColors.length], roughness: 0.5 }),
+    );
+    sprinkle.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius, 0.083);
+    sprinkle.rotation.set(Math.PI / 2, random() * Math.PI, 0);
+    donut.add(sprinkle);
+  }
+  return donut;
+}
+
+/** A pistachio macaron moon: two domed shells around a cream filling. */
+function makeMacaron() {
+  const macaron = new Group();
+  const shellMaterial = new MeshStandardMaterial({ color: "#a8dcb8", roughness: 0.62 });
+  const shellGeometry = new SphereGeometry(0.17, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+  const footGeometry = new CylinderGeometry(0.168, 0.162, 0.026, 32);
+  for (const side of [1, -1]) {
+    const shell = new Mesh(shellGeometry, shellMaterial);
+    shell.scale.set(1, 0.48, 1);
+    shell.position.y = side * 0.045;
+    if (side < 0) shell.rotation.x = Math.PI;
+    // The ruffled "foot" where each shell rose in the oven.
+    const foot = new Mesh(footGeometry, new MeshStandardMaterial({ color: "#93cba3", roughness: 0.9 }));
+    foot.position.y = side * 0.034;
+    macaron.add(shell, foot);
+  }
+  const filling = new Mesh(
+    new CylinderGeometry(0.15, 0.15, 0.042, 32),
+    new MeshStandardMaterial({ color: "#fff1d2", roughness: 0.55 }),
+  );
+  macaron.add(filling);
+  return macaron;
+}
+
+/**
+ * Daytime bakery planets on tilted orbits around the cookie. Each sheds
+ * sprinkles that hang in space where they fell and shrink away.
+ */
+function makeBakeryPlanets() {
+  const random = seededRandom(311);
+  const system = new Group();
+  const sprinkleGeometry = new CapsuleGeometry(0.0075, 0.027, 3, 6);
+  const color = new Color();
+  const matrix = new Matrix4();
+  const rotation = new Quaternion();
+  const scale = new Vector3();
+  const planets = [
+    // tilt sets each orbit plane; the near (+z) side dips below the cookie.
+    { body: makeDonut(random), radius: 2.85, tilt: new Euler(0.3, 0, -0.38), period: 42, direction: 1, phase: 1.25, spin: new Vector3(0.4, 0.9, 0.2) },
+    { body: makeMacaron(), radius: 3.3, tilt: new Euler(0.22, 0, 0.46), period: 58, direction: -1, phase: 2.3, spin: new Vector3(0.6, 0.3, 0.8) },
+  ].map((planet) => {
+    planet.body.traverse((object) => {
+      if (object instanceof Mesh) object.castShadow = true;
+    });
+    planet.body.scale.setScalar(0.5);
+    system.add(planet.body);
+    const trail = new InstancedMesh(sprinkleGeometry, new MeshStandardMaterial({ roughness: 0.5 }), 80);
+    trail.frustumCulled = false;
+    const births = new Float32Array(trail.count).fill(-Infinity);
+    const spots = Array.from({ length: trail.count }, () => new Vector3());
+    const turns = Array.from({ length: trail.count }, () => new Quaternion());
+    for (let i = 0; i < trail.count; i++) {
+      trail.setMatrixAt(i, matrix.makeScale(0, 0, 0));
+      trail.setColorAt(i, color.set(sprinkleColors[i % sprinkleColors.length]));
+    }
+    system.add(trail);
+    return { ...planet, orbit: new Quaternion().setFromEuler(planet.tilt), trail, births, spots, turns, next: 0, lastEmit: 0 };
+  });
+  const trailLife = 3.2;
+  function update(clock: number) {
+    for (const planet of planets) {
+      const angle = planet.phase + planet.direction * (clock / planet.period) * Math.PI * 2;
+      planet.body.position
+        .set(Math.cos(angle) * planet.radius, 0, Math.sin(angle) * planet.radius)
+        .applyQuaternion(planet.orbit);
+      planet.body.rotation.set(planet.spin.x * clock, planet.spin.y * clock, planet.spin.z * clock);
+      if (clock - planet.lastEmit > 0.045 || clock < planet.lastEmit) {
+        planet.lastEmit = clock;
+        const slot = planet.next;
+        planet.next = (slot + 1) % planet.trail.count;
+        planet.births[slot] = clock;
+        planet.spots[slot].copy(planet.body.position).add(
+          scale.set(random() - 0.5, random() - 0.5, random() - 0.5).multiplyScalar(0.1),
+        );
+        planet.turns[slot].setFromEuler(new Euler(random() * Math.PI, random() * Math.PI, random() * Math.PI));
+      }
+      for (let i = 0; i < planet.trail.count; i++) {
+        const age = clock - planet.births[i];
+        const life = age < 0 ? 0 : 1 - age / trailLife;
+        const size = life > 0 ? life * life * (3 - 2 * life) : 0;
+        matrix.compose(planet.spots[i], planet.turns[i], scale.setScalar(size));
+        planet.trail.setMatrixAt(i, matrix);
+      }
+      planet.trail.instanceMatrix.needsUpdate = true;
+    }
+  }
+  /** Clear the trails, e.g. when the planets reappear after a flight. */
+  function resetTrails() {
+    for (const planet of planets) planet.births.fill(-Infinity);
+  }
+  const materials = new Set<MeshStandardMaterial>();
+  system.traverse((object) => {
+    if (object instanceof Mesh) materials.add(object.material);
+  });
+  /** Off: the planets still cast shadows but leave no colour or depth behind. */
+  function setDrawn(drawn: boolean) {
+    materials.forEach((material) => {
+      material.colorWrite = drawn;
+      material.depthWrite = drawn;
+    });
+  }
+  return { system, update, resetTrails, setDrawn };
+}
+
 export function mountCookieMoon(host: HTMLElement) {
   const canvas = host.querySelector<HTMLCanvasElement>("canvas")!;
   const viewport = host.querySelector<HTMLElement>("[data-cookie-viewport]")!;
@@ -400,6 +539,19 @@ export function mountCookieMoon(host: HTMLElement) {
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.25;
+  // The HTML flags sit above the main canvas, so planets are drawn on their own
+  // canvas above the flags, masked by the cookie's depth where they pass behind.
+  const planetCanvas = document.createElement("canvas");
+  planetCanvas.className = "cookie-planets";
+  planetCanvas.setAttribute("aria-hidden", "true");
+  const planetRenderer = new WebGLRenderer({ canvas: planetCanvas, alpha: true, antialias: true, powerPreference: "low-power" });
+  planetRenderer.setPixelRatio(renderer.getPixelRatio());
+  planetRenderer.outputColorSpace = SRGBColorSpace;
+  planetRenderer.toneMapping = ACESFilmicToneMapping;
+  planetRenderer.toneMappingExposure = 1.25;
+  planetRenderer.autoClear = false;
+  planetRenderer.setClearColor(0x000000, 0);
+  const depthOnly = new MeshBasicMaterial({ colorWrite: false });
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFShadowMap;
   renderer.shadowMap.autoUpdate = false;
@@ -414,10 +566,15 @@ export function mountCookieMoon(host: HTMLElement) {
   }
   const homeRotation = cookie.quaternion.clone();
   scene.add(cookie);
+  const planets = makeBakeryPlanets();
+  scene.add(planets.system);
+  let planetClock = 0;
+  let daylight = false;
   // Keep real links attached to the cookie in the same coordinate system.
   const htmlRenderer = new CSS3DRenderer();
   htmlRenderer.domElement.className = "cookie-html";
   viewport.appendChild(htmlRenderer.domElement);
+  viewport.appendChild(planetCanvas);
   // Flags planted in the dough: WebGL poles and cloth shadows, with the cloth
   // itself a real HTML button laid on the same plane for crisp, focusable text.
   const flagScale = 0.00475;
@@ -721,6 +878,7 @@ export function mountCookieMoon(host: HTMLElement) {
       cookie.position.y = entrance.fromY;
     }
     renderer.setSize(width, height, false);
+    planetRenderer.setSize(width, height, false);
     htmlRenderer.setSize(width, height);
     requestRender();
     if (leaving) return;
@@ -990,8 +1148,27 @@ export function mountCookieMoon(host: HTMLElement) {
       flagGroup.visible = flagsVisible;
       renderer.shadowMap.needsUpdate = true;
     }
+    planets.setDrawn(false);
     renderer.render(scene, camera);
+    planets.setDrawn(true);
+    renderPlanets();
     renderFace();
+  }
+  function renderPlanets() {
+    planetRenderer.clear();
+    if (!planets.system.visible) return;
+    const starsVisible = stars.visible;
+    stars.visible = false;
+    // First lay down the cookie's depth, then draw only the planets against it.
+    planets.system.visible = false;
+    scene.overrideMaterial = depthOnly;
+    planetRenderer.render(scene, camera);
+    scene.overrideMaterial = null;
+    planets.system.visible = true;
+    cookie.visible = false;
+    planetRenderer.render(scene, camera);
+    cookie.visible = true;
+    stars.visible = starsVisible;
   }
   function exitTo(href: string, link: HTMLAnchorElement) {
     controls.enabled = false;
@@ -1089,6 +1266,7 @@ export function mountCookieMoon(host: HTMLElement) {
     rim.intensity = dark ? 3.5 : 1.6;
     sunlight.intensity = dark ? 3.2 : 2.8;
     stars.visible = dark;
+    daylight = !dark;
     starsMaterial.opacity = 0.55;
     requestRender();
   }
@@ -1144,6 +1322,21 @@ export function mountCookieMoon(host: HTMLElement) {
         }
         requestRender();
         if (progress === 1) finishFlight();
+      }
+      // Planets only orbit by day, around the whole cookie, and freeze with Pause.
+      const planetsShown = daylight && destination === "home" && !flight && !leaving;
+      if (planets.system.visible !== planetsShown) {
+        planets.system.visible = planetsShown;
+        if (!planetsShown) planets.resetTrails();
+        renderer.shadowMap.needsUpdate = true;
+        requestRender();
+      }
+      if (planetsShown && (!orbitPaused || planetClock === 0)) {
+        planetClock += lastTime ? Math.min((time - lastTime) / 1000, 0.05) : 0.001;
+        planets.system.position.copy(cookie.position);
+        planets.update(planetClock);
+        renderer.shadowMap.needsUpdate = true;
+        requestRender();
       }
       const changed = controls.enabled && controls.update(
         lastTime ? Math.min((time - lastTime) / 1000, 0.05) : 0,
@@ -1227,6 +1420,9 @@ export function mountCookieMoon(host: HTMLElement) {
     chipFades.forEach((batch) => batch.texture.dispose());
     sunlight.shadow.dispose();
     renderer.dispose();
+    depthOnly.dispose();
+    planetRenderer.dispose();
+    planetCanvas.remove();
     face.hidden = true;
     faceObject.removeFromParent();
     viewport.appendChild(face);
