@@ -26,9 +26,9 @@ Open the local URL printed by Astro (usually `http://localhost:4321`). The devel
 ## Pages
 
 - `/` — Home page and introduction to the site.
-- `/writing` — Writing page, with articles at `/writing/<slug>/` and tag pages at `/writing/tags/<tag>/`.
+- `/notes` — Notes page, with articles at `/notes/<slug>/` and tag pages at `/notes/tags/<tag>/`.
 - `/about` — About Netkuki and the tools behind it.
-- `/rss.xml` — RSS feed of published writing. A sitemap is generated at `/sitemap-index.xml`.
+- `/rss.xml` — RSS feed of published notes. A sitemap is generated at `/sitemap-index.xml`.
 - `404` — Not-found page, served by Cloudflare for unknown routes.
 
 ## Project structure
@@ -46,9 +46,9 @@ The home page features an interactive Three.js cookie moon, built from procedura
 
 The npm override for Miniflare’s `undici` dependency selects a patched 7.x release until Wrangler includes it upstream.
 
-## Writing posts
+## Writing notes
 
-Copy `src/content/blog/_template.md` to a new `.md` file anywhere under `src/content/blog/`. Its path becomes its URL, so `src/content/blog/my-first-note.md` is published at `/writing/my-first-note/`. Published posts appear on `/writing` after the development server refreshes or the site is rebuilt. Previous `/blog` URLs redirect to their `/writing` equivalents; Astro supplies development and static HTML redirects, and `public/_redirects` supplies permanent redirects on Cloudflare.
+Copy `src/content/blog/_template.md` to a new `.md` file anywhere under `src/content/blog/`. Its path becomes its URL, so `src/content/blog/my-first-note.md` is published at `/notes/my-first-note/`. Published posts appear on `/notes` after the development server refreshes or the site is rebuilt. Previous `/blog` and `/writing` URLs redirect to their `/notes` equivalents; Astro supplies development and static HTML redirects, and `public/_redirects` supplies permanent redirects on Cloudflare.
 
 Each post needs a title and publication date. Description and tags are optional; set `draft: true` to keep a post out of the listing and generated pages. The `_template.md` file is a draft and is not published.
 

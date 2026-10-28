@@ -16,14 +16,14 @@ interface Props {
 const { tag, posts } = Astro.props;
 ---
 
-<BaseLayout pageTitle={`${tag} — Writing — Netkuki`} description={`Notes on ${tag} from rauland: things built, lessons learned, and ideas still taking shape.`}>
+<BaseLayout pageTitle={`${tag} — Notes — Netkuki`} description={`Notes on ${tag} from rauland: things built, lessons learned, and ideas still taking shape.`}>
 	<main class="inner-page">
 		<p class="eyebrow"><span class="status-dot"></span> THE NOTEBOOK · TAG</p>
-		<h1 class="inner-title">Writing on<br /><span>{tag}.</span></h1>
+		<h1 class="inner-title">Notes on<br /><span>{tag}.</span></h1>
 		<p class="inner-lede">{posts.length} {posts.length === 1 ? "note" : "notes"} tagged {tag}.</p>
 		<div class="article-list">
 			{posts.map((post) => <ArticleCard post={post} />)}
 		</div>
-		<a class="back-link" href="/writing/">← All writing</a>
+		<a class="back-link" href="/notes/">← All notes</a>
 	</main>
 </BaseLayout>

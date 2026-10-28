@@ -7,15 +7,15 @@ const posts = await getPublishedPosts();
 const tags = groupByTag(posts);
 ---
 
-<BaseLayout pageTitle="Writing — Netkuki" description="Things built, lessons learned, and ideas still taking shape: notes from rauland on cloud platforms, Linux, automation and the web.">
+<BaseLayout pageTitle="Notes — Netkuki" description="Things built, lessons learned, and ideas still taking shape: notes from rauland on cloud platforms, Linux, automation and the web.">
 	<main class="inner-page">
 		<p class="eyebrow"><span class="status-dot"></span> THE NOTEBOOK</p>
 		<h1 class="inner-title">What I’m<br /><span>working on.</span></h1>
 		<p class="inner-lede">Things built, lessons learned, and ideas still taking shape. Some notes are short, some need more room, and all of them stay open to revision.</p>
 		{tags.length > 0 && (
-			<nav class="tag-nav" aria-label="Browse writing by tag">
+			<nav class="tag-nav" aria-label="Browse notes by tag">
 				<ul class="skill-list tag-list">
-					{tags.map(({ slug, tag }) => <li><a href={`/writing/tags/${slug}/`}>{tag}</a></li>)}
+					{tags.map(({ slug, tag }) => <li><a href={`/notes/tags/${slug}/`}>{tag}</a></li>)}
 				</ul>
 			</nav>
 		)}
@@ -26,7 +26,7 @@ const tags = groupByTag(posts);
 		) : (
 			<div class="note-card"><span class="note-number">THE NOTEBOOK</span><div><h2>The next note is in the making.</h2><p>There aren’t any notes here yet. Come back soon.</p><a class="arrow-link" href="/about/">More about me <span aria-hidden="true">↗</span></a></div><span class="note-sparkle" aria-hidden="true">✳</span></div>
 		)}
-		<div class="writing-footer-links">
+		<div class="notes-footer-links">
 			<a class="back-link" href="/">← Back to the cookie</a>
 			<a class="back-link" href="/rss.xml">RSS feed</a>
 		</div>

@@ -1211,7 +1211,7 @@ a:focus-visible {
 .tag-list li:hover {
   border-color: var(--accent);
 }
-.writing-footer-links {
+.notes-footer-links {
   display: flex;
   justify-content: space-between;
   gap: 20px;

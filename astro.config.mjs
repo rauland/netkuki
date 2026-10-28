@@ -16,8 +16,10 @@ export default defineConfig({
     { provider: fontProviders.google(), name: 'Manrope', cssVariable: '--font-manrope', weights: [400, 500, 600, 700, 800], styles: ['normal'], fallbacks: ['sans-serif'] },
   ],
   redirects: {
-    '/blog': '/writing/',
-    '/blog/[...slug]': '/writing/[...slug]',
+    '/blog': '/notes/',
+    '/writing': '/notes/',
+    '/blog/[...slug]': '/notes/[...slug]',
+    '/writing/[...slug]': '/notes/[...slug]',
   },
   vite: {
     plugins: [tailwindcss()],

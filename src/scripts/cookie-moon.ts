@@ -388,7 +388,7 @@ export function mountCookieMoon(host: HTMLElement) {
     });
   } catch {
     status.textContent =
-      "The 3D view isn’t available in this browser. Explore Writing or About above.";
+      "The 3D view isn’t available in this browser. Explore Notes or About above.";
     host.dataset.state = "unavailable";
     return;
   }
@@ -701,8 +701,8 @@ export function mountCookieMoon(host: HTMLElement) {
     controls.enableDamping = true;
     updateMotion();
     announcement.textContent = destination === "home"
-      ? "Back at the whole cookie. Choose Writing or About to explore."
-      : `${destination === "writing" ? "Writing" : "About"}. You have arrived on the cookie’s surface. Press Escape to fly back.`;
+      ? "Back at the whole cookie. Choose Notes or About to explore."
+      : `${destination === "writing" ? "Notes" : "About"}. You have arrived on the cookie’s surface. Press Escape to fly back.`;
     // Render visibility before moving keyboard focus into the destination.
     renderScene();
     const focusTarget = destination === "home"
@@ -725,11 +725,11 @@ export function mountCookieMoon(host: HTMLElement) {
     destination = next;
     host.dataset.destination = next;
     host.dataset.traveling = "true";
-    announcement.textContent = next === "home" ? "Flying back to the whole cookie." : `Flying to ${next === "writing" ? "Writing" : "About"}.`;
+    announcement.textContent = next === "home" ? "Flying back to the whole cookie." : `Flying to ${next === "writing" ? "Notes" : "About"}.`;
     returnButton.hidden = next === "home";
     hint.textContent = next === "home"
       ? "Pick a place to fly to · Drag to explore"
-      : `${next === "writing" ? "Writing" : "About"} · Escape to fly back`;
+      : `${next === "writing" ? "Notes" : "About"} · Escape to fly back`;
     buttons.forEach((button) => {
       button.disabled = next !== "home" && button.dataset.cookieAction !== "reset";
     });
@@ -967,7 +967,7 @@ export function mountCookieMoon(host: HTMLElement) {
     viewport.inert = true;
     returnButton.disabled = true;
     buttons.forEach((button) => { button.disabled = true; });
-    announcement.textContent = zoomIn ? "Opening the article." : `Opening ${destination === "writing" ? "Writing" : "About"}.`;
+    announcement.textContent = zoomIn ? "Opening the article." : `Opening ${destination === "writing" ? "Notes" : "About"}.`;
     // A timer completes navigation even if the tab stops receiving animation frames.
     exitTimer = window.setTimeout(() => window.location.assign(href), leaving.duration);
     requestRender();

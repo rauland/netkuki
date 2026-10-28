@@ -8,7 +8,7 @@ interface Props {
 const { post } = Astro.props;
 ---
 
-<a class="article-card" href={`/writing/${post.id}/`}>
+<a class="article-card" href={`/notes/${post.id}/`}>
 	<div class="article-meta"><time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time><span>{readingMinutes(post.body)} min read</span><span>{post.data.tags.join(" · ")}</span></div>
 	<h2>{post.data.title}</h2>
 	{post.data.description && <p>{post.data.description}</p>}

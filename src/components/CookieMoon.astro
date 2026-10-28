@@ -18,10 +18,10 @@ const posts = (await getPublishedPosts()).slice(0, 2);
 	<button class="cookie-return" type="button" data-cookie-destination="home" hidden>← Fly back to the cookie</button>
 	<div class="cookie-viewport" data-cookie-viewport>
 		<canvas class="cookie-canvas" tabindex="0" aria-label="Interactive 3D chocolate-chip cookie" aria-describedby="cookie-instructions">
-			A chocolate-chip cookie floating like a moon. Find more on the Writing and About pages.
+			A chocolate-chip cookie floating like a moon. Find more on the Notes and About pages.
 		</canvas>
 		<nav class="cookie-face" data-cookie-face aria-label="Explore Netkuki" hidden>
-			<button type="button" data-cookie-destination="writing">Writing <span aria-hidden="true"><RocketIcon /></span></button>
+			<button type="button" data-cookie-destination="writing">Notes <span aria-hidden="true"><RocketIcon /></span></button>
 			<button type="button" data-cookie-destination="about">About <span aria-hidden="true"><RocketIcon /></span></button>
 		</nav>
 		<article class="cookie-surface" data-cookie-surface="writing" aria-labelledby="cookie-writing-title" hidden>
@@ -30,7 +30,7 @@ const posts = (await getPublishedPosts()).slice(0, 2);
 			<p>Things built, lessons learned, and ideas still taking shape.</p>
 			<div class="cookie-surface-posts">
 				{posts.map((post) => (
-					<a href={`/writing/${post.id}/`} data-cookie-exit="zoom">
+					<a href={`/notes/${post.id}/`} data-cookie-exit="zoom">
 						<span>{formatDate(post.data.pubDate)}</span>
 						<strong>{post.data.title}{"\u00a0"}<span aria-hidden="true">↗</span></strong>
 					</a>
@@ -38,7 +38,7 @@ const posts = (await getPublishedPosts()).slice(0, 2);
 				{posts.length === 0 && <p>The next note is in the making. Come back soon.</p>}
 			</div>
 			<div class="cookie-surface-links">
-				<a href="/writing/" data-cookie-exit>All writing&nbsp;↗</a>
+				<a href="/notes/" data-cookie-exit>All notes&nbsp;↗</a>
 				<button type="button" data-cookie-destination="about">Fly to About <RocketIcon /></button>
 			</div>
 		</article>
@@ -51,7 +51,7 @@ const posts = (await getPublishedPosts()).slice(0, 2);
 			</ul>
 			<div class="cookie-surface-links">
 				<a href="/about/" data-cookie-exit>More about me&nbsp;↗</a>
-				<button type="button" data-cookie-destination="writing">Fly to Writing <RocketIcon /></button>
+				<button type="button" data-cookie-destination="writing">Fly to Notes <RocketIcon /></button>
 			</div>
 		</article>
 	</div>
@@ -69,7 +69,7 @@ const posts = (await getPublishedPosts()).slice(0, 2);
 			<button type="button" data-cookie-action="reset" aria-label="Reset cookie view" disabled>Reset</button>
 		</div>
 	</div>
-	<noscript><p class="cookie-no-script">Enable JavaScript to explore the cookie in 3D. You can still visit <a href="/writing/">Writing</a> and <a href="/about/">About</a>.</p></noscript>
+	<noscript><p class="cookie-no-script">Enable JavaScript to explore the cookie in 3D. You can still visit <a href="/notes/">Notes</a> and <a href="/about/">About</a>.</p></noscript>
 </section>
 
 <script>

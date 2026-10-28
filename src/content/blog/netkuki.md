@@ -11,7 +11,7 @@ draft: false
 
 Kuki is a phonetic spelling of cookie. Put “net” in front of it, and you get Netkuki: a place on the internet with a cookie at its centre.
 
-That gives the name something to do. On the homepage, the cookie floats in space, turns slowly, and carries the places you can visit. Writing lives on one side. About lives on the other. Choose a destination and the camera flies you there.
+That gives the name something to do. On the homepage, the cookie floats in space, turns slowly, and carries the places you can visit. Notes live on one side. About lives on the other. Choose a destination and the camera flies you there.
 
 <figure class="post-diagram name-diagram" aria-labelledby="netkuki-name-title">
   <figcaption><span class="diagram-label">THE NAME</span><strong id="netkuki-name-title">Net + kuki</strong></figcaption>
@@ -21,11 +21,11 @@ That gives the name something to do. On the homepage, the cookie floats in space
 
 ## A cookie you can visit
 
-The cookie gives the site a physical layout. The writing area is a notebook on its surface, with links to posts. The back introduces me and the things I work with. You can fly between the two, return to the whole cookie, or drag it around to look at it yourself.
+The cookie gives the site a physical layout. The notes area is a notebook on its surface, with links to posts. The back introduces me and the things I work with. You can fly between the two, return to the whole cookie, or drag it around to look at it yourself.
 
 Those camera movements help connect the views. Going to About feels like travelling to the other side of the same object. Opening a post zooms towards the selected link before taking you to the article.
 
-The articles themselves have room to read and scroll. The header also keeps Home, Writing, and About within reach, so you can move around directly whenever you want.
+The articles themselves have room to read and scroll. The header also keeps Home, Notes, and About within reach, so you can move around directly whenever you want.
 
 ## The surface is real text
 
@@ -60,4 +60,4 @@ Underneath the cookie, Netkuki is an Astro site. Posts are written in Markdown, 
 
 It’s a place to share things I build and learn, and a project to keep experimenting with. Sometimes that means working on the infrastructure behind another project. Sometimes it means making a chocolate chip turn a cookie rainbow.
 
-You can [explore the cookie](/), [read about the infrastructure project](/writing/iac/), or look through the [Netkuki source on GitHub](https://github.com/rauland/netkuki).
+You can [explore the cookie](/), [read about the infrastructure project](/notes/iac/), or look through the [Netkuki source on GitHub](https://github.com/rauland/netkuki).

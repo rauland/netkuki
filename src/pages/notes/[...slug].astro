@@ -28,7 +28,7 @@ const pageTitle = `${post.data.title} — Netkuki`;
 		<header class="post-header">
 			<div class="post-heading-nav">
 				<p class="eyebrow"><span class="status-dot"></span> THE NOTEBOOK</p>
-				<a class="back-link" href="/writing/">← All writing</a>
+				<a class="back-link" href="/notes/">← All notes</a>
 			</div>
 			<h1 class="inner-title">{post.data.title}</h1>
 			{post.data.description && <p class="inner-lede">{post.data.description}</p>}
@@ -39,7 +39,7 @@ const pageTitle = `${post.data.title} — Netkuki`;
 				{post.data.tags.length > 0 && (
 					<span class="post-tags">
 						{post.data.tags.map((tag, i) => (
-							<>{i > 0 && " · "}{tagSlug(tag) ? <a href={`/writing/tags/${tagSlug(tag)}/`}>{tag}</a> : tag}</>
+							<>{i > 0 && " · "}{tagSlug(tag) ? <a href={`/notes/tags/${tagSlug(tag)}/`}>{tag}</a> : tag}</>
 						))}
 					</span>
 				)}
@@ -47,21 +47,21 @@ const pageTitle = `${post.data.title} — Netkuki`;
 		</header>
 		<article class="post-content"><Content /></article>
 		{(newer || older) && (
-			<nav class="post-pager" aria-label="More writing">
+			<nav class="post-pager" aria-label="More notes">
 				{older ? (
-					<a class="post-pager-link" href={`/writing/${older.id}/`} rel="prev">
+					<a class="post-pager-link" href={`/notes/${older.id}/`} rel="prev">
 						<span class="note-number">← PREVIOUS</span>
 						<strong>{older.data.title}</strong>
 					</a>
 				) : <span />}
 				{newer && (
-					<a class="post-pager-link post-pager-next" href={`/writing/${newer.id}/`} rel="next">
+					<a class="post-pager-link post-pager-next" href={`/notes/${newer.id}/`} rel="next">
 						<span class="note-number">NEXT →</span>
 						<strong>{newer.data.title}</strong>
 					</a>
 				)}
 			</nav>
 		)}
-		<a class="back-link" href="/writing/">← All writing</a>
+		<a class="back-link" href="/notes/">← All notes</a>
 	</main>
 </BaseLayout>
