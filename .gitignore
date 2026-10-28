@@ -25,3 +25,5 @@ pnpm-debug.log*
 
 *.tar
 *.tar.gz
+# claude code local settings
+.claude/
