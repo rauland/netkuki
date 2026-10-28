@@ -21,8 +21,8 @@ const posts = (await getPublishedPosts()).slice(0, 2);
 			A chocolate-chip cookie floating like a moon. Find more on the Notes and About pages.
 		</canvas>
 		<nav class="cookie-face" data-cookie-face aria-label="Explore Netkuki" hidden>
-			<button type="button" data-cookie-destination="writing">Notes <span aria-hidden="true"><RocketIcon /></span></button>
-			<button type="button" data-cookie-destination="about">About <span aria-hidden="true"><RocketIcon /></span></button>
+			<button class="cookie-flag" type="button" data-cookie-destination="writing"><span>Notes</span></button>
+			<button class="cookie-flag" type="button" data-cookie-destination="about"><span>About</span></button>
 		</nav>
 		<article class="cookie-surface" data-cookie-surface="writing" aria-labelledby="cookie-writing-title" hidden>
 			<p class="cookie-surface-coordinate">THE NOTEBOOK</p>

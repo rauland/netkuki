@@ -2,8 +2,10 @@ import {
   ACESFilmicToneMapping,
   BufferGeometry,
   Color,
+  CylinderGeometry,
   DataTexture,
   DirectionalLight,
+  DoubleSide,
   Float32BufferAttribute,
   Group,
   HemisphereLight,
@@ -13,10 +15,12 @@ import {
   LinearMipmapLinearFilter,
   Matrix4,
   Mesh,
+  MeshBasicMaterial,
   MeshDepthMaterial,
   MeshStandardMaterial,
   PCFShadowMap,
   PerspectiveCamera,
+  PlaneGeometry,
   Points,
   PointsMaterial,
   Quaternion,
@@ -414,10 +418,61 @@ export function mountCookieMoon(host: HTMLElement) {
   const htmlRenderer = new CSS3DRenderer();
   htmlRenderer.domElement.className = "cookie-html";
   viewport.appendChild(htmlRenderer.domElement);
+  // Flags planted in the dough: WebGL poles and cloth shadows, with the cloth
+  // itself a real HTML button laid on the same plane for crisp, focusable text.
+  const flagScale = 0.00475;
+  const flagPlane = 0.62;
+  const flagCloth = { width: 0.94, height: 0.44 };
+  const flags = [
+    // lean tilts each pole off vertical (radians, positive leans left), as if pushed in by hand.
+    { name: "writing", x: -1.06, top: 0.86, base: -0.12, lean: 0.17 },
+    { name: "about", x: 0.14, top: 0.46, base: -0.52, lean: -0.13 },
+  ] as const;
+  const faceBounds = { left: -1.2, right: 1.2, top: 1, bottom: -0.1 };
+  face.style.width = `${(faceBounds.right - faceBounds.left) / flagScale}px`;
+  face.style.height = `${(faceBounds.top - faceBounds.bottom) / flagScale}px`;
+  const flagGroup = new Group();
+  const poleMaterial = new MeshStandardMaterial({ color: "#dfe3ea", metalness: 0.55, roughness: 0.32 });
+  // Shadow-only stand-ins let the HTML cloth cast a shadow onto the cookie.
+  const clothShadowMaterial = new MeshBasicMaterial({ colorWrite: false, depthWrite: false, side: DoubleSide });
+  for (const flag of flags) {
+    const button = face.querySelector<HTMLElement>(`[data-cookie-destination="${flag.name}"]`)!;
+    button.style.left = `${(flag.x - faceBounds.left) / flagScale}px`;
+    button.style.top = `${(faceBounds.top - flag.top) / flagScale}px`;
+    button.style.width = `${flagCloth.width / flagScale}px`;
+    button.style.height = `${flagCloth.height / flagScale}px`;
+    // The cloth hangs from the pole, so it turns about its top-left corner by the same lean.
+    button.style.transform = `rotate(${-flag.lean}rad)`;
+    const along = new Vector3(-Math.sin(flag.lean), Math.cos(flag.lean), 0);
+    const across = new Vector3(Math.cos(flag.lean), Math.sin(flag.lean), 0);
+    const attach = new Vector3(flag.x, flag.top, flagPlane);
+    // Sink the foot just below the dough so the pole reads as pushed in.
+    const foot = attach.clone().addScaledVector(along, flag.base - flag.top).setZ(0.29);
+    const tip = attach.clone().addScaledVector(along, 0.04);
+    const pole = new Mesh(new CylinderGeometry(0.022, 0.027, foot.distanceTo(tip), 16), poleMaterial);
+    pole.position.lerpVectors(foot, tip, 0.5);
+    pole.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), tip.clone().sub(foot).normalize());
+    const finial = new Mesh(new SphereGeometry(0.045, 16, 12), poleMaterial);
+    finial.position.copy(tip);
+    const clothShadow = new Mesh(new PlaneGeometry(flagCloth.width, flagCloth.height), clothShadowMaterial);
+    clothShadow.position.copy(attach)
+      .addScaledVector(across, flagCloth.width / 2)
+      .addScaledVector(along, -flagCloth.height / 2);
+    clothShadow.rotation.z = flag.lean;
+    for (const mesh of [pole, finial, clothShadow]) {
+      mesh.castShadow = true;
+      flagGroup.add(mesh);
+    }
+  }
+  cookie.add(flagGroup);
   const faceObject = new CSS3DObject(face);
-  faceObject.position.set(0, 0, 0.6);
-  // The button styles render at 2× size for sharper text in the 3D view.
-  faceObject.scale.setScalar(0.00475);
+  faceObject.position.set(
+    (faceBounds.left + faceBounds.right) / 2,
+    (faceBounds.top + faceBounds.bottom) / 2,
+    flagPlane,
+  );
+  // The flag styles render at 2× size for sharper text in the 3D view.
+  faceObject.scale.setScalar(flagScale);
   cookie.add(faceObject);
   type Destination = "home" | "writing" | "about";
   const surfaces = (["writing", "about"] as const).map((name) => {
@@ -906,16 +961,19 @@ export function mountCookieMoon(host: HTMLElement) {
     updateMotion();
     requestRender();
   }
+  function facesCamera(object: CSS3DObject) {
+    object.getWorldPosition(facePosition);
+    faceNormal.set(0, 0, 1).transformDirection(object.matrixWorld);
+    faceToCamera.copy(camera.position).sub(facePosition).normalize();
+    // HTML has no WebGL depth buffer: hide it before the surface turns away.
+    return faceNormal.dot(faceToCamera) > 0.35;
+  }
   function renderFace() {
     for (const { object, element, active } of [
       { object: faceObject, element: face, active: destination === "home" && !flight },
       ...surfaces.map((surface) => ({ ...surface, active: destination === surface.name })),
     ]) {
-      object.getWorldPosition(facePosition);
-      faceNormal.set(0, 0, 1).transformDirection(object.matrixWorld);
-      faceToCamera.copy(camera.position).sub(facePosition).normalize();
-      // HTML has no WebGL depth buffer: hide it before the surface turns away.
-      object.visible = active && faceNormal.dot(faceToCamera) > 0.35;
+      object.visible = active && facesCamera(object);
       element.inert = !object.visible || !!flight || !!entrance;
       element.hidden = !object.visible;
     }
@@ -925,6 +983,13 @@ export function mountCookieMoon(host: HTMLElement) {
     // A distant sky follows camera translation, keeping its directions and size
     // stable while the cookie moves closer or the camera flies around it.
     stars.position.copy(camera.position);
+    // Poles and cloth shadows come and go with the HTML cloth they belong to.
+    scene.updateMatrixWorld();
+    const flagsVisible = destination === "home" && !flight && facesCamera(faceObject);
+    if (flagGroup.visible !== flagsVisible) {
+      flagGroup.visible = flagsVisible;
+      renderer.shadowMap.needsUpdate = true;
+    }
     renderer.render(scene, camera);
     renderFace();
   }
