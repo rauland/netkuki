@@ -295,8 +295,8 @@ a:focus-visible {
   letter-spacing: -0.02em;
   cursor: pointer;
   pointer-events: auto;
-  perspective: 900px;
   transform-origin: top left;
+  transform-style: preserve-3d;
 }
 .cookie-flag span {
   display: flex;

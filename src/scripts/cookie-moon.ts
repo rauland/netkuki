@@ -590,11 +590,15 @@ export function mountCookieMoon(host: HTMLElement) {
   const flagPlane = 0.62;
   const flagCloth = { width: 0.94, height: 0.44 };
   const flags = [
-    // lean tilts each pole off vertical (radians, positive leans left), as if pushed in by hand.
-    { name: "writing", x: -1.06, top: 0.86, base: -0.12, lean: 0.17 },
-    { name: "about", x: 0.14, top: 0.46, base: -0.52, lean: -0.13 },
+    // lean tilts each pole off vertical (radians, positive leans left), as if pushed in by hand;
+    // feet are placed on bare dough, clear of the chips. swing turns the cloth about its
+    // pole toward the default camera, since the cookie's resting yaw foreshortens the left side.
+    { name: "writing", x: -0.92, top: 0.86, base: -0.12, lean: 0.17, swing: 0.1 },
+    { name: "about", x: 0.56, top: 0.44, base: -0.28, lean: -0.12, swing: 0 },
   ] as const;
-  const faceBounds = { left: -1.2, right: 1.2, top: 1, bottom: -0.1 };
+  // Cloths catch the same breeze, so they take only a little of their pole's lean.
+  const clothLean = 0.33;
+  const faceBounds = { left: -1.05, right: 1.55, top: 1, bottom: -0.2 };
   face.style.width = `${(faceBounds.right - faceBounds.left) / flagScale}px`;
   face.style.height = `${(faceBounds.top - faceBounds.bottom) / flagScale}px`;
   const flagGroup = new Group();
@@ -607,24 +611,39 @@ export function mountCookieMoon(host: HTMLElement) {
     button.style.top = `${(faceBounds.top - flag.top) / flagScale}px`;
     button.style.width = `${flagCloth.width / flagScale}px`;
     button.style.height = `${flagCloth.height / flagScale}px`;
-    // The cloth hangs from the pole, so it turns about its top-left corner by the same lean.
-    button.style.transform = `rotate(${-flag.lean}rad)`;
     const along = new Vector3(-Math.sin(flag.lean), Math.cos(flag.lean), 0);
-    const across = new Vector3(Math.cos(flag.lean), Math.sin(flag.lean), 0);
+    const lift = flag.lean * clothLean;
+    const level = new Vector3(Math.cos(lift), Math.sin(lift), 0);
     const attach = new Vector3(flag.x, flag.top, flagPlane);
     // Sink the foot just below the dough so the pole reads as pushed in.
     const foot = attach.clone().addScaledVector(along, flag.base - flag.top).setZ(0.29);
-    const tip = attach.clone().addScaledVector(along, 0.04);
+    const up = attach.clone().sub(foot).normalize();
+    const tip = attach.clone().addScaledVector(up, 0.04);
+    // Swing the cloth about the pole so it turns to face the viewer; its free end
+    // moves slightly back, which turns the cloth's face toward the camera.
+    const across = level.clone().applyAxisAngle(up, flag.swing);
+    // The cloth's left edge runs down the pole while its top edge stays nearly
+    // level (a slight skew), and it tips back with the pole into the dough.
+    const tilt = Math.atan2(flagPlane - foot.z, flag.top - flag.base);
+    const skew = [Math.cos(lift), -Math.sin(lift), Math.sin(flag.lean), Math.cos(flag.lean)].map((n) => n.toFixed(4));
+    button.style.transform = `matrix(${skew.join(", ")}, 0, 0) rotateX(${-tilt}rad) rotateY(${flag.swing}rad)`;
     const pole = new Mesh(new CylinderGeometry(0.022, 0.027, foot.distanceTo(tip), 16), poleMaterial);
     pole.position.lerpVectors(foot, tip, 0.5);
     pole.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), tip.clone().sub(foot).normalize());
     const finial = new Mesh(new SphereGeometry(0.045, 16, 12), poleMaterial);
     finial.position.copy(tip);
-    const clothShadow = new Mesh(new PlaneGeometry(flagCloth.width, flagCloth.height), clothShadowMaterial);
-    clothShadow.position.copy(attach)
-      .addScaledVector(across, flagCloth.width / 2)
-      .addScaledVector(along, -flagCloth.height / 2);
-    clothShadow.rotation.z = flag.lean;
+    // Same skewed shape as the HTML cloth: top edge along `across`, left edge down the pole.
+    const clothShadow = new Mesh(new PlaneGeometry(1, 1), clothShadowMaterial);
+    clothShadow.matrixAutoUpdate = false;
+    clothShadow.matrix.makeBasis(
+      across.clone().multiplyScalar(flagCloth.width),
+      up.clone().multiplyScalar(flagCloth.height),
+      new Vector3().crossVectors(across, up).normalize(),
+    ).setPosition(
+      attach.clone()
+        .addScaledVector(across, flagCloth.width / 2)
+        .addScaledVector(up, -flagCloth.height / 2),
+    );
     for (const mesh of [pole, finial, clothShadow]) {
       mesh.castShadow = true;
       flagGroup.add(mesh);
@@ -632,6 +651,11 @@ export function mountCookieMoon(host: HTMLElement) {
   }
   cookie.add(flagGroup);
   const faceObject = new CSS3DObject(face);
+  // CSS3DObject forces pointer-events on; only the flag cloths should catch
+  // the pointer, so drags between and around them still turn the cookie.
+  face.style.pointerEvents = "none";
+  // Let each cloth tilt in real 3D rather than being flattened into the nav's plane.
+  face.style.transformStyle = "preserve-3d";
   faceObject.position.set(
     (faceBounds.left + faceBounds.right) / 2,
     (faceBounds.top + faceBounds.bottom) / 2,
