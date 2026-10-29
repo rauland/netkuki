@@ -360,14 +360,14 @@ function makeCookie() {
     rainbowStrength.value = strength;
     rainbowPhase.value = phase;
   }
-  // A back chip beside the About paragraph stays clear of the return button and text.
-  const secretIndex = chips.reduce((best, chip, index) => {
-    if (chip.z >= 0 || chipRegions[index] !== "rim") return best;
-    return best < 0 || Math.hypot(chip.x + 0.85, chip.y + 0.31) <
-      Math.hypot(chips[best].x + 0.85, chips[best].y + 0.31) ? index : best;
-  }, -1);
-  const secretChip = chipSlots.get(secretIndex)!;
-  return { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus, setRainbow, secretChip };
+  // Back chips beside the About paragraph, best first. The first one on screen and
+  // clear of the text becomes the secret, so narrow screens still show one.
+  const secretChips = chips
+    .flatMap((chip, index) => chip.z < 0 && chipRegions[index] === "rim"
+      ? [{ ...chipSlots.get(index)!, position: new Vector3(chip.x, chip.y, chip.z), rank: Math.hypot(chip.x + 0.85, chip.y + 0.31) }]
+      : [])
+    .sort((a, b) => a.rank - b.rank);
+  return { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus, setRainbow, secretChips };
 }
 
 const sprinkleColors = ["#f58ab8", "#6fbcef", "#ffc94d", "#9b87f5", "#ffffff"];
@@ -568,7 +568,8 @@ export function mountCookieMoon(host: HTMLElement) {
   const scene = new Scene();
   const camera = new PerspectiveCamera(38, 1, 0.1, 120);
   camera.position.set(0, 0.05, 7.4);
-  const { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus, setRainbow, secretChip } = makeCookie();
+  const { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus, setRainbow, secretChips } = makeCookie();
+  let secretChip = secretChips[0];
   for (const texture of [grainTexture, crumbTexture]) {
     texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
   }
@@ -838,6 +839,23 @@ export function mountCookieMoon(host: HTMLElement) {
     const hit = chipRaycaster.intersectObjects(cookieMeshes.filter((mesh) => mesh.visible), false)[0];
     return hit?.object === secretChip.mesh && hit.instanceId === secretChip.index;
   }
+  function pickSecretChip() {
+    const bounds = viewport.getBoundingClientRect();
+    const blockers = [returnButton, bottomBar, surfaces.find((surface) => surface.name === "about")!.element]
+      .map((element) => element.getBoundingClientRect());
+    scene.updateMatrixWorld(true);
+    camera.updateMatrixWorld();
+    const point = new Vector3();
+    secretChip = secretChips.find((chip) => {
+      point.copy(chip.position).applyMatrix4(cookie.matrixWorld).project(camera);
+      const x = bounds.left + (point.x + 1) / 2 * bounds.width;
+      const y = bounds.top + (1 - point.y) / 2 * bounds.height;
+      const margin = 24;
+      return x > bounds.left + margin && x < bounds.right - margin &&
+        y > bounds.top + margin && y < bounds.bottom - margin &&
+        blockers.every((rect) => x < rect.left - 12 || x > rect.right + 12 || y < rect.top - 12 || y > rect.bottom + 12);
+    }) ?? secretChips[0];
+  }
   function onChipPointerDown(event: PointerEvent) {
     if (!event.isPrimary || event.button !== 0) {
       chipPress = null;
@@ -951,6 +969,7 @@ export function mountCookieMoon(host: HTMLElement) {
       : `${destination === "writing" ? "Notes" : "About"}. You have arrived on the cookie’s surface. Press Escape to fly back.`;
     // Render visibility before moving keyboard focus into the destination.
     renderScene();
+    if (destination === "about") pickSecretChip();
     const focusTarget = destination === "home"
       ? face.querySelector<HTMLButtonElement>("button")
       : surfaces.find((surface) => surface.name === destination)?.element.querySelector<HTMLElement>("h2");

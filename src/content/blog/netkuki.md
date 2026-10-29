@@ -51,7 +51,7 @@ A cookie that you can turn over deserves a surprise.
 
 <details>
   <summary>A hint for the curious</summary>
-  <p>On the About side, try the larger chocolate chip halfway down the right edge. It sends a moving rainbow across the cookie for ten seconds, then the usual colours return.</p>
+  <p>Fly to the About side and tap the chocolate chips around the outside of the cookie. One of them turns the whole cookie rainbow for ten seconds.</p>
 </details>
 
 ## Still taking shape
