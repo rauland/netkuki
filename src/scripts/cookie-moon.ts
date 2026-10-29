@@ -551,7 +551,15 @@ export function mountCookieMoon(host: HTMLElement) {
   planetRenderer.toneMappingExposure = 1.25;
   planetRenderer.autoClear = false;
   planetRenderer.setClearColor(0x000000, 0);
-  const depthOnly = new MeshBasicMaterial({ colorWrite: false });
+  // The planets only need the cookie's rough shape to hide behind, so the depth
+  // pass uses a low-poly ellipsoid instead of the full, finely detailed cookie.
+  const depthScene = new Scene();
+  const depthProxy = new Mesh(
+    new SphereGeometry(2.1, 40, 20).scale(1, 1, 0.36 / 2.1),
+    new MeshBasicMaterial({ colorWrite: false }),
+  );
+  depthProxy.matrixAutoUpdate = false;
+  depthScene.add(depthProxy);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFShadowMap;
   renderer.shadowMap.autoUpdate = false;
@@ -569,6 +577,7 @@ export function mountCookieMoon(host: HTMLElement) {
   const planets = makeBakeryPlanets();
   scene.add(planets.system);
   let planetClock = 0;
+  let planetFrame = 0;
   let daylight = false;
   // Keep real links attached to the cookie in the same coordinate system.
   const htmlRenderer = new CSS3DRenderer();
@@ -1157,14 +1166,11 @@ export function mountCookieMoon(host: HTMLElement) {
   function renderPlanets() {
     planetRenderer.clear();
     if (!planets.system.visible) return;
+    // First lay down the cookie's depth, then draw only the planets against it.
+    depthProxy.matrix.copy(cookie.matrixWorld);
+    planetRenderer.render(depthScene, camera);
     const starsVisible = stars.visible;
     stars.visible = false;
-    // First lay down the cookie's depth, then draw only the planets against it.
-    planets.system.visible = false;
-    scene.overrideMaterial = depthOnly;
-    planetRenderer.render(scene, camera);
-    scene.overrideMaterial = null;
-    planets.system.visible = true;
     cookie.visible = false;
     planetRenderer.render(scene, camera);
     cookie.visible = true;
@@ -1335,7 +1341,8 @@ export function mountCookieMoon(host: HTMLElement) {
         planetClock += lastTime ? Math.min((time - lastTime) / 1000, 0.05) : 0.001;
         planets.system.position.copy(cookie.position);
         planets.update(planetClock);
-        renderer.shadowMap.needsUpdate = true;
+        // Planet shadows drift slowly; refreshing every third frame is invisible.
+        if (planetFrame++ % 3 === 0) renderer.shadowMap.needsUpdate = true;
         requestRender();
       }
       const changed = controls.enabled && controls.update(
@@ -1420,7 +1427,8 @@ export function mountCookieMoon(host: HTMLElement) {
     chipFades.forEach((batch) => batch.texture.dispose());
     sunlight.shadow.dispose();
     renderer.dispose();
-    depthOnly.dispose();
+    depthProxy.geometry.dispose();
+    depthProxy.material.dispose();
     planetRenderer.dispose();
     planetCanvas.remove();
     face.hidden = true;
