@@ -18,7 +18,10 @@
   --surface: #edf2f8;
   --code: #e7eef8;
   --link-line: #a6bad4;
+  --sans: var(--font-dm-sans);
   --mono: var(--font-dm-mono);
+  --text-small: 13px;
+  --text-fine: 12px;
   --display: var(--font-manrope);
   --page-top-space: 48px;
 }
@@ -107,19 +110,12 @@ a:focus-visible {
 .nav-links a[aria-current="page"] {
   color: var(--accent);
 }
-.nav-arrow {
-  font-size: 10px;
-  color: var(--muted);
-}
 .nav-contact {
   border: 1px solid var(--line);
   border-radius: 99px;
   padding: 11px 17px;
   background: var(--paper);
   transition: border-color 0.2s, background 0.2s;
-}
-.nav-contact span {
-  margin-left: 8px;
 }
 .site-content {
   width: 100%;
@@ -165,8 +161,8 @@ a:focus-visible {
   pointer-events: none;
   margin: 0;
   color: var(--muted);
-  font: 500 10px var(--mono);
-  letter-spacing: 0.11em;
+  font: 500 var(--text-fine) var(--sans);
+  letter-spacing: 0.04em;
   transition: opacity 0.25s, visibility 0.25s;
 }
 .cookie-universe:not([data-destination="home"]) .cookie-label {
@@ -424,8 +420,8 @@ a:focus-visible {
 }
 .cookie-surface .cookie-surface-coordinate {
   margin: 0;
-  font: 500 20px var(--mono);
-  letter-spacing: 0.12em;
+  font: 500 20px var(--sans);
+  letter-spacing: 0.04em;
   color: #43546a;
 }
 .cookie-surface-toolkit {
@@ -435,7 +431,7 @@ a:focus-visible {
   margin: 0 0 36px;
   padding: 0;
   list-style: none;
-  font: 22px / 1.4 var(--mono);
+  font: 22px / 1.4 var(--sans);
 }
 .cookie-surface-toolkit li {
   padding: 8px 18px;
@@ -459,7 +455,7 @@ a:focus-visible {
 }
 .cookie-surface-posts a > span {
   display: block;
-  font: 20px var(--mono);
+  font: 20px var(--sans);
   color: #43546a;
   margin-bottom: 16px;
 }
@@ -493,7 +489,7 @@ a:focus-visible {
   border-bottom: 2px solid #43546a80;
   background: none;
   color: #1c293b;
-  font: 500 22px var(--mono);
+  font: 500 22px var(--sans);
   cursor: pointer;
 }
 .cookie-surface-links button {
@@ -555,7 +551,7 @@ a:focus-visible {
 }
 .cookie-instructions {
   pointer-events: auto;
-  font: 10px / 1.8 var(--mono);
+  font: var(--text-fine) / 1.8 var(--sans);
   margin: 0;
   cursor: default;
 }
@@ -635,7 +631,7 @@ a:focus-visible {
   .cookie-return {
     top: 12px;
     right: 18px;
-    font-size: 10px;
+    font-size: var(--text-fine);
   }
   .cookie-label {
     left: 18px;
@@ -656,14 +652,15 @@ a:focus-visible {
 }
 .eyebrow,
 .footer-copy {
-  font: 500 10px var(--mono);
-  letter-spacing: 0.11em;
+  font: 500 var(--text-fine) var(--sans);
+  letter-spacing: 0.04em;
 }
 .eyebrow {
   color: var(--muted);
 }
 /* A tiny cookie, in the same palettes as the 3D one: baked by day, a grey moon by night. */
-.status-dot {
+.status-dot,
+.name-cookie {
   --dough: #b9b9b9;
   --dough-edge: #707070;
   --chip: #292929;
@@ -682,7 +679,8 @@ a:focus-visible {
     radial-gradient(circle at 38% 32%, var(--dough) 45%, var(--dough-edge));
   box-shadow: 0 1px 2px #00000040;
 }
-:root:not(.dark) .status-dot {
+:root:not(.dark) .status-dot,
+:root:not(.dark) .name-cookie {
   --dough: #b8773f;
   --dough-edge: #633618;
   --chip: #2b130b;
@@ -700,7 +698,7 @@ a:focus-visible {
   border-radius: 99px;
   padding: 15px 20px;
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--text-fine);
   transition:
     transform 0.2s,
     background 0.2s;
@@ -715,19 +713,40 @@ a:focus-visible {
 .button-primary:hover {
   background: var(--accent-hover);
 }
-.button span {
+.button span,
+.button[href^="http"]::after {
   font-size: 16px;
+}
+.button[href^="http"]::after {
+  margin-left: 0;
 }
 .text-link,
 .arrow-link {
-  font-size: 12px;
+  font-size: var(--text-fine);
   font-weight: 600;
   border-bottom: 1px solid var(--link-line);
   padding-bottom: 5px;
 }
-.text-link span,
-.arrow-link span {
-  margin-left: 8px;
+/* Arrows say where a link goes: ↗ leaves the site, → moves on within it, ← goes back. */
+a[href^="http"]::after {
+  content: "↗";
+  content: "↗" / "";
+  display: inline-block;
+  margin-left: 0.4em;
+  transition: transform 0.2s;
+}
+a[href^="http"]:is(:hover, :focus-visible)::after {
+  transform: translate(2px, -2px);
+}
+.link-arrow {
+  display: inline-block;
+  transition: transform 0.2s;
+}
+a:is(:hover, :focus-visible) .link-arrow {
+  transform: translateX(3px);
+}
+a:is(:hover, :focus-visible) .link-arrow.is-back {
+  transform: translateX(-3px);
 }
 .project-links {
   display: flex;
@@ -758,11 +777,10 @@ a:focus-visible {
 .footer-inner p {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-fine);
 }
 .footer-copy {
   color: var(--muted);
-  font-size: 9px;
 }
 
 @media (max-width: 800px) {
@@ -790,13 +808,10 @@ a:focus-visible {
   }
   .nav-links a,
   .nav-contact {
-    font-size: 11px;
+    font-size: var(--text-fine);
   }
   .nav-contact {
     padding: 9px 12px;
-  }
-  .nav-contact span {
-    margin-left: 4px;
   }
   .nav-shell,
   .footer-inner {
@@ -828,6 +843,15 @@ a:focus-visible {
   .footer-brand {
     grid-column: 1;
     grid-row: 1;
+  }
+}
+@media (max-width: 360px) {
+  .nav-links {
+    gap: 14px;
+    margin-left: 10px;
+  }
+  .nav-contact[href^="http"]::after {
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -875,8 +899,8 @@ a:focus-visible {
   position: relative;
 }
 .note-number {
-  font: 500 10px var(--mono);
-  letter-spacing: 0.1em;
+  font: 500 var(--text-fine) var(--sans);
+  letter-spacing: 0.04em;
   color: var(--muted);
 }
 .note-card h2,
@@ -901,7 +925,7 @@ a:focus-visible {
 }
 .back-link {
   display: inline-block;
-  font-size: 12px;
+  font-size: var(--text-fine);
   font-weight: 600;
   color: var(--muted);
   margin-top: 30px;
@@ -957,7 +981,7 @@ a:focus-visible {
   padding: 7px 11px;
   border: 1px solid var(--line);
   border-radius: 99px;
-  font: 11px var(--mono);
+  font: var(--text-small) var(--sans);
 }
 .about-page {
   min-height: 650px;
@@ -1071,7 +1095,7 @@ a:focus-visible {
   display: block;
   flex: none;
 }
-.nav-contact span {
+.nav-contact[href^="http"]::after {
   margin-left: 0;
 }
 .nav-actions {
@@ -1114,11 +1138,11 @@ a:focus-visible {
 .article-meta,
 .post-meta {
   display: flex;
-  gap: 18px;
+  flex-wrap: wrap;
+  gap: 4px 18px;
   align-items: center;
   color: var(--muted);
-  font: 500 10px var(--mono);
-  letter-spacing: 0.04em;
+  font: var(--text-small) var(--sans);
 }
 .article-card h2,
 .article-card h3 {
@@ -1306,169 +1330,173 @@ a:focus-visible {
   background: none;
 }
 .post-diagram {
-  margin: 32px 0;
-  padding: 26px;
+  margin: 36px 0;
+  padding: 24px;
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 14px;
   background: var(--surface);
   color: var(--ink);
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 .post-diagram figcaption {
   display: grid;
-  gap: 8px;
-  margin-bottom: 24px;
+  gap: 6px;
+  margin-bottom: 20px;
 }
-.diagram-label,
-.diagram-kicker {
+.diagram-label {
   display: block;
   color: var(--accent);
-  font: 500 10px/1.6 var(--mono);
-  letter-spacing: 0.07em;
+  font: 500 var(--text-fine)/1.6 var(--sans);
+  letter-spacing: 0.04em;
 }
 .post-diagram figcaption > strong {
-  font: 700 21px/1.35 var(--display);
-  letter-spacing: -0.035em;
-}
-.diagram-source,
-.diagram-platform,
-.diagram-state {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--paper);
-}
-.diagram-source {
-  display: grid;
-  justify-items: center;
-  padding: 18px;
-}
-.diagram-source > strong {
-  margin: 3px 0;
-  font-size: 17px;
-}
-.diagram-source > span:last-child,
-.diagram-platform-label > span,
-.diagram-outcome > span,
-.diagram-state > span:last-child,
-.diagram-steps li div > span {
-  color: var(--muted);
-}
-.diagram-connection {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 14px 4px;
-  color: var(--muted);
-  font-size: 12px;
-}
-.diagram-connection > span {
-  color: var(--accent);
-  font-size: 21px;
-}
-.diagram-platform {
-  overflow: hidden;
-}
-.diagram-platform-label {
-  display: grid;
-  gap: 3px;
-  padding: 16px 18px;
-  border-bottom: 1px solid var(--line);
-}
-.diagram-platform-label > strong {
-  font-size: 17px;
-}
-.diagram-lanes,
-.diagram-policies {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.diagram-lane {
-  min-width: 0;
-  padding: 20px 16px;
-  text-align: center;
-}
-.diagram-lane + .diagram-lane {
-  border-left: 1px solid var(--line);
-}
-.diagram-machine {
-  display: block;
-  margin-top: 6px;
-  font-size: 18px;
-}
-.diagram-outcome {
-  display: grid;
-  gap: 5px;
-  padding: 14px 10px;
-  border-radius: 8px;
-  background: var(--accent-soft);
-}
-.diagram-state {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 5px 10px;
-  padding: 12px 16px;
-  margin-top: 16px;
-}
-.diagram-state > span:first-child {
-  color: var(--accent);
-  font-size: 22px;
+  font: 700 21px/1.3 var(--display);
+  letter-spacing: -0.03em;
 }
 .post-content .diagram-caption {
   margin: 16px 0 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-small);
 }
-.post-content .diagram-steps {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+/* The stack: places things live, joined by arrows drawn from whichever side starts the connection. */
+.diagram-zone {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
 }
-.post-content .diagram-steps li {
-  position: relative;
+.diagram-zone > strong,
+.diagram-node > strong {
+  display: block;
+  font-size: 15px;
+}
+.diagram-zone > span,
+.diagram-node > span {
+  display: block;
+  color: var(--muted);
+}
+.diagram-nodes,
+.diagram-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.diagram-nodes {
+  margin-top: 14px;
+}
+.diagram-node {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+}
+.diagram-node > span + span {
+  margin-top: 6px;
+}
+.diagram-link {
   display: flex;
-  gap: 16px;
-  padding: 0 0 22px;
-  margin: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  color: var(--muted);
+  font-size: var(--text-small);
 }
-.diagram-steps li:not(:last-child)::before {
+.diagram-link > strong {
+  color: var(--ink);
+}
+.diagram-arrow {
+  position: relative;
+  flex: none;
+  width: 9px;
+  height: 38px;
+  color: var(--accent);
+}
+.diagram-arrow::before {
   content: "";
   position: absolute;
-  left: 17px;
-  top: 36px;
-  bottom: 0;
-  border-left: 1px solid var(--link-line);
+  left: 4px;
+  top: 0;
+  bottom: 1px;
+  border-left: 1.5px solid currentColor;
 }
-.diagram-step-number {
+.diagram-arrow::after {
+  content: "";
+  position: absolute;
+  left: 1px;
+  bottom: 1px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+.diagram-arrow.is-up {
+  transform: scaleY(-1);
+}
+/* The change path: steps in a row, then the route each kind of change takes. */
+.post-content .diagram-path {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.post-content .diagram-path li {
   position: relative;
   display: grid;
+  align-content: start;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+}
+.diagram-path li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 38px;
+  right: -8px;
+  top: 14px;
+  border-top: 1px solid var(--link-line);
+}
+.diagram-path-number {
+  display: grid;
   place-items: center;
-  flex: 0 0 36px;
-  height: 36px;
+  width: 29px;
+  height: 29px;
+  margin-bottom: 8px;
   border: 1px solid var(--link-line);
   border-radius: 50%;
   background: var(--paper);
   color: var(--accent);
-  font: 500 11px var(--mono);
+  font: 500 var(--text-fine) var(--sans);
 }
-.diagram-steps li div {
-  display: grid;
-  gap: 4px;
-  padding-top: 4px;
-}
-.diagram-steps li strong {
+.diagram-path li > strong {
   font-size: 15px;
 }
-.diagram-policies {
-  gap: 14px;
-  border-top: 1px solid var(--line);
-  padding-top: 20px;
+.diagram-path li > span:last-child {
+  color: var(--muted);
 }
-.diagram-policies strong {
-  display: block;
-  margin-top: 6px;
+.post-content .diagram-routes {
+  margin: 20px 0 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+.diagram-routes > div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 16px;
+}
+.diagram-routes > div + div {
+  border-top: 1px solid var(--line);
+}
+.diagram-routes dt {
+  font-weight: 700;
+}
+.diagram-routes dd {
+  margin: 0;
+  color: var(--muted);
 }
 .post-content details {
   margin: 26px 0;
@@ -1488,53 +1516,108 @@ a:focus-visible {
 .post-content details p:last-child {
   margin-bottom: 0;
 }
-.name-diagram figcaption > strong {
-  font-size: 30px;
-}
-.name-equation {
+.name-sum {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 16px;
-  align-items: center;
-  padding: 22px 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--paper);
-  text-align: center;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1.2fr);
+  gap: 12px;
+  align-items: start;
 }
-.name-equation > div {
+.name-sum > div {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
-.name-equation strong {
+.name-sum strong {
   color: var(--accent);
-  font: 700 clamp(30px, 6vw, 46px)/1.2 var(--display);
-  letter-spacing: -0.06em;
+  font: 700 34px/1.2 var(--display);
+  letter-spacing: -0.05em;
 }
-.name-equation span {
+.name-sum > div > span:last-child {
   color: var(--muted);
 }
-.name-equation > span {
-  font-size: 28px;
+.name-operator {
+  color: var(--muted);
+  font: 500 24px/48px var(--display);
+}
+.name-result {
+  position: relative;
+  padding-left: 58px;
+}
+/* The status-dot cookie, large enough to see its chips. */
+.name-cookie {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 42%, var(--chip) 0 8%, transparent 9%),
+    radial-gradient(circle at 63% 26%, var(--chip) 0 6%, transparent 7%),
+    radial-gradient(circle at 70% 64%, var(--chip) 0 8%, transparent 9%),
+    radial-gradient(circle at 38% 78%, var(--chip) 0 5%, transparent 6%),
+    radial-gradient(circle at 38% 32%, var(--dough) 45%, var(--dough-edge));
+  box-shadow: 0 2px 6px #00000040;
 }
 @media (max-width: 560px) {
   .post-diagram {
     padding: 18px;
   }
-  .diagram-lanes,
-  .diagram-policies {
+  .diagram-nodes,
+  .diagram-links {
     grid-template-columns: 1fr;
   }
-  .diagram-lane + .diagram-lane {
-    border-left: 0;
+  .diagram-links {
+    gap: 0;
+  }
+  .post-content .diagram-path {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .post-content .diagram-path li {
+    padding-left: 42px;
+  }
+  .diagram-path-number {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+  .diagram-path li:not(:last-child)::after {
+    left: 14px;
+    right: auto;
+    top: 29px;
+    bottom: -16px;
+    border-top: 0;
+    border-left: 1px solid var(--link-line);
+  }
+  .diagram-routes > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .name-sum {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+  .name-sum > .name-operator:nth-of-type(n + 2) {
+    display: none;
+  }
+  .name-result {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+    padding-top: 16px;
     border-top: 1px solid var(--line);
   }
-  .diagram-state > span:last-child {
-    flex-basis: 100%;
+  .name-cookie {
+    top: 16px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .theme-toggle {
     transition: none;
+  }
+  a[href^="http"]:is(:hover, :focus-visible)::after,
+  a:is(:hover, :focus-visible) .link-arrow {
+    transform: none;
+  }
+  .article-card:hover .article-arrow {
+    transform: translateY(-50%);
   }
 }

@@ -28,7 +28,7 @@ const pageTitle = `${post.data.title} — Netkuki`;
 		<header class="post-header">
 			<div class="post-heading-nav">
 				<p class="eyebrow"><span class="status-dot"></span> THE NOTEBOOK</p>
-				<a class="back-link" href="/notes/">← All notes</a>
+				<a class="back-link" href="/notes/"><span class="link-arrow is-back" aria-hidden="true">←</span> All notes</a>
 			</div>
 			<h1 class="inner-title">{post.data.title}</h1>
 			{post.data.description && <p class="inner-lede">{post.data.description}</p>}
@@ -50,18 +50,18 @@ const pageTitle = `${post.data.title} — Netkuki`;
 			<nav class="post-pager" aria-label="More notes">
 				{older ? (
 					<a class="post-pager-link" href={`/notes/${older.id}/`} rel="prev">
-						<span class="note-number">← PREVIOUS</span>
+						<span class="note-number"><span class="link-arrow is-back" aria-hidden="true">←</span> PREVIOUS</span>
 						<strong>{older.data.title}</strong>
 					</a>
 				) : <span />}
 				{newer && (
 					<a class="post-pager-link post-pager-next" href={`/notes/${newer.id}/`} rel="next">
-						<span class="note-number">NEXT →</span>
+						<span class="note-number">NEXT <span class="link-arrow" aria-hidden="true">→</span></span>
 						<strong>{newer.data.title}</strong>
 					</a>
 				)}
 			</nav>
 		)}
-		<a class="back-link" href="/notes/">← All notes</a>
+		<a class="back-link" href="/notes/"><span class="link-arrow is-back" aria-hidden="true">←</span> All notes</a>
 	</main>
 </BaseLayout>

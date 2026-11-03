@@ -2,6 +2,7 @@
 title: "Netkuki: a website on a cookie"
 description: Why “kuki” sounds like cookie, and how a name became a homepage you can fly around.
 pubDate: 2026-10-25
+updatedDate: 2026-11-04
 tags:
   - Design
   - Astro
@@ -9,55 +10,60 @@ tags:
 draft: false
 ---
 
-Kuki is a phonetic spelling of cookie. Put “net” in front of it, and you get Netkuki: a place on the internet with a cookie at its centre.
+“Kuki” is just “cookie” spelled the way it sounds. Put “net” in front and you get Netkuki, so of course the homepage is a cookie floating in space.
 
-That gives the name something to do. On the homepage, the cookie floats in space, turns slowly, and carries the places you can visit. Notes live on one side. About lives on the other. Choose a destination and the camera flies you there.
-
-<figure class="post-diagram name-diagram" aria-labelledby="netkuki-name-title">
-  <figcaption><span class="diagram-label">THE NAME</span><strong id="netkuki-name-title">Net + kuki</strong></figcaption>
-  <div class="name-equation"><div><strong>net</strong><span>A place on the internet</span></div><span aria-hidden="true">+</span><div><strong>kuki</strong><span>Cookie, written as it sounds</span></div></div>
-  <p class="diagram-caption">Together: Netkuki. The cookie became the homepage.</p>
+<figure class="post-diagram" aria-labelledby="netkuki-name-title">
+  <figcaption><span class="diagram-label">THE NAME</span><strong id="netkuki-name-title">How the name adds up.</strong></figcaption>
+  <div class="name-sum">
+    <div><strong>net</strong><span>A place on the internet</span></div>
+    <span class="name-operator" aria-hidden="true">+</span>
+    <div><strong>kuki</strong><span>Cookie, spelled as it sounds</span></div>
+    <span class="name-operator" aria-hidden="true">=</span>
+    <div class="name-result"><span class="name-cookie" aria-hidden="true"></span><strong>Netkuki</strong><span>A website on a cookie</span></div>
+  </div>
 </figure>
+
+The cookie turns slowly, and you can fly around it. Notes are on one side and About is on the other. Pick one and the camera takes you there.
 
 ## A cookie you can visit
 
-The cookie gives the site a physical layout. The notes area is a notebook on its surface, with links to posts. The back introduces me and the things I work with. You can fly between the two, return to the whole cookie, or drag it around to look at it yourself.
+The notes area is a notebook on the cookie’s surface, with links to posts. The back has a short intro to me and the things I work with. You can fly between the two, pull back to see the whole cookie, or just drag it around.
 
-Those camera movements help connect the views. Going to About feels like travelling to the other side of the same object. Opening a post zooms towards the selected link before taking you to the article.
+The camera moves make it all feel like one place. Going to About takes you round to the other side of the same cookie, and opening a post zooms in on its link before the article loads.
 
-The articles themselves have room to read and scroll. The header also keeps Home, Notes, and About within reach, so you can move around directly whenever you want.
+Articles are normal pages that you can read and scroll. Home, Notes, and About stay in the header if you’d rather skip the flying.
 
-## The surface is real text
+## The writing is real text
 
-The homepage uses Three.js for the cookie, chocolate chips, lighting, and camera. The buttons and writing on its surface are HTML, positioned in the same 3D scene.
+Three.js draws the cookie, the chocolate chips, the lighting, and the camera. The buttons and writing on the surface are plain HTML, placed in the same 3D scene.
 
-That matters for a site built around words. The links behave like links, the text can be selected, and the buttons can receive keyboard focus. The camera moves around the content while the browser continues to render the words.
+That’s important on a site that’s mostly words. Links work like links, you can select the text, and buttons take keyboard focus. The camera moves around, but the browser is still rendering ordinary text.
 
-Getting that balance right took some adjustment. Text on a moving surface can look soft, and a detailed cookie texture can compete with the words. The surface content renders at a larger size before being scaled into the scene. As you fly into a reading area, the fine texture softens and nearby chips fade away. Flying back restores the detail.
+It took some fiddling to get it looking right. Text on a moving surface can go soft, and a detailed cookie texture fights with the words. So the surface content renders larger than it needs to and gets scaled down into the scene. When you fly into a reading area, the fine texture softens and the nearby chips fade out. Fly back and it all returns.
 
 ## Cookie by day, moon by night
 
-Day mode gives the cookie a baked brown surface and dark chocolate chips. The back is a lighter golden brown to help the About text stand out.
+By day, it’s a baked brown cookie with dark chocolate chips. The back is a lighter golden brown so the About text stands out.
 
-At night, it takes on a pale, moon-like appearance against a field of stars. The shape stays familiar, but the surroundings give it a different mood.
+At night, it turns pale like a moon, with a field of stars behind it.
 
-The floating buttons have a glass-like finish, with a clearer highlight on hover. They need to be easy to spot against the changing background, and still readable while the cookie turns.
+The floating buttons look like glass and brighten when you hover over them. They have to stay easy to spot and read while the cookie turns and the background changes.
 
-Motion has controls too. You can pause the rotation, reset the view, and press Escape to fly back from a surface. The site also responds to reduced-motion preferences.
+You can also pause the rotation, reset the view, or press Escape to fly back from a surface. If your device is set to reduce motion, the site follows that too.
 
-## Something tucked into the chocolate
+## Something hidden in the chocolate
 
-A cookie that you can turn over deserves a surprise.
+If you’re going to turn a cookie over, there should be something to find.
 
 <details>
   <summary>A hint for the curious</summary>
   <p>Fly to the About side and tap the chocolate chips around the outside of the cookie. One of them turns the whole cookie rainbow for ten seconds.</p>
 </details>
 
-## Still taking shape
+## Under the cookie
 
-Underneath the cookie, Netkuki is an Astro site. Posts are written in Markdown, and the 3D homepage sits alongside straightforward writing and profile pages.
+Netkuki is an Astro site. Posts are written in Markdown, and the writing and profile pages are ordinary pages sitting next to the 3D homepage.
 
-It’s a place to share things I build and learn, and a project to keep experimenting with. Sometimes that means working on the infrastructure behind another project. Sometimes it means making a chocolate chip turn a cookie rainbow.
+I use it to share what I build and learn, and to keep experimenting. Some days that’s infrastructure for another project. Other days it’s making a chocolate chip turn a cookie rainbow.
 
-You can [explore the cookie](/), [read about the infrastructure project](/notes/iac/), or look through the [Netkuki source on GitHub](https://github.com/rauland/netkuki).
+You can [go play with the cookie](/), [read about the infrastructure project](/notes/iac/), or look through the [source on GitHub](https://github.com/rauland/netkuki).

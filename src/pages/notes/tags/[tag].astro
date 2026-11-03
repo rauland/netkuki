@@ -24,6 +24,6 @@ const { tag, posts } = Astro.props;
 		<div class="article-list">
 			{posts.map((post) => <ArticleCard post={post} />)}
 		</div>
-		<a class="back-link" href="/notes/">← All notes</a>
+		<a class="back-link" href="/notes/"><span class="link-arrow is-back" aria-hidden="true">←</span> All notes</a>
 	</main>
 </BaseLayout>

@@ -24,10 +24,10 @@ const tags = groupByTag(posts);
 				{posts.map((post) => <ArticleCard post={post} />)}
 			</div>
 		) : (
-			<div class="note-card"><span class="note-number">THE NOTEBOOK</span><div><h2>The next note is in the making.</h2><p>There aren’t any notes here yet. Come back soon.</p><a class="arrow-link" href="/about/">More about me <span aria-hidden="true">↗</span></a></div><span class="note-sparkle" aria-hidden="true">✳</span></div>
+			<div class="note-card"><span class="note-number">THE NOTEBOOK</span><div><h2>The next note is in the making.</h2><p>There aren’t any notes here yet. Come back soon.</p><a class="arrow-link" href="/about/">More about me <span class="link-arrow" aria-hidden="true">→</span></a></div><span class="note-sparkle" aria-hidden="true">✳</span></div>
 		)}
 		<div class="notes-footer-links">
-			<a class="back-link" href="/">← Back to the cookie</a>
+			<a class="back-link" href="/"><span class="link-arrow is-back" aria-hidden="true">←</span> Back to the cookie</a>
 			<a class="back-link" href="/rss.xml">RSS feed</a>
 		</div>
 	</main>

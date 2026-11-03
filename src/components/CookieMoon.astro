@@ -24,13 +24,13 @@ const posts = (await getPublishedPosts()).slice(0, 2);
 				{posts.map((post) => (
 					<a href={`/notes/${post.id}/`} data-cookie-exit="zoom">
 						<span>{formatDate(post.data.pubDate)}</span>
-						<strong>{post.data.title}{"\u00a0"}<span aria-hidden="true">↗</span></strong>
+						<strong>{post.data.title}{"\u00a0"}<span class="link-arrow" aria-hidden="true">→</span></strong>
 					</a>
 				))}
 				{posts.length === 0 && <p>The next note is in the making. Come back soon.</p>}
 			</div>
 			<div class="cookie-surface-links">
-				<a href="/notes/" data-cookie-exit>All notes&nbsp;↗</a>
+				<a href="/notes/" data-cookie-exit>All notes&nbsp;<span class="link-arrow" aria-hidden="true">→</span></a>
 				<button type="button" data-cookie-destination="about">Fly to About <RocketIcon /></button>
 			</div>
 		</article>
@@ -42,7 +42,7 @@ const posts = (await getPublishedPosts()).slice(0, 2);
 				{["Cloud", "Linux", "Infrastructure", "Terraform", "Ansible", "Python"].map((skill) => <li>{skill}</li>)}
 			</ul>
 			<div class="cookie-surface-links">
-				<a href="/about/" data-cookie-exit>More about me&nbsp;↗</a>
+				<a href="/about/" data-cookie-exit>More about me&nbsp;<span class="link-arrow" aria-hidden="true">→</span></a>
 				<button type="button" data-cookie-destination="writing">Fly to Notes <RocketIcon /></button>
 			</div>
 		</article>
