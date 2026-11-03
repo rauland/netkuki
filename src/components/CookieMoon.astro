@@ -14,6 +14,9 @@ const posts = (await getPublishedPosts()).slice(0, 2);
 		</canvas>
 		<nav class="cookie-face" data-cookie-face aria-label="Explore Netkuki" hidden>
 			<button class="cookie-flag" type="button" data-cookie-destination="writing"><span>Notes</span></button>
+			<button class="cookie-flag" type="button" data-cookie-destination="about"><span>About<i class="cookie-flag-turn" aria-hidden="true">↻</i></span></button>
+		</nav>
+		<nav class="cookie-face" data-cookie-face-back aria-label="The other side of the cookie" hidden>
 			<button class="cookie-flag" type="button" data-cookie-destination="about"><span>About</span></button>
 		</nav>
 		<article class="cookie-surface" data-cookie-surface="writing" aria-labelledby="cookie-writing-title" hidden>

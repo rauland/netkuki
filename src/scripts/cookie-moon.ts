@@ -44,6 +44,10 @@ import { ImprovedNoise } from "three/addons/math/ImprovedNoise.js";
 import { CSS3DObject, CSS3DRenderer } from "three/addons/renderers/CSS3DRenderer.js";
 
 // A fixed seed keeps the same cookie when a reader returns or changes theme.
+// How far each reading panel sits from the middle. The back one stays closer in:
+// its text runs into the corner that the cookie's curve pulls away from.
+const surfaceOffset = (side: number) => side * (side === 1 ? 0.55 : 0.35);
+
 function seededRandom(seed: number) {
   return () => {
     seed = (seed * 1664525 + 1013904223) >>> 0;
@@ -180,8 +184,8 @@ function makeCookie() {
       const index = (y * textureSize + x) * 4;
       // Build feathered masks; the flight animation controls when they soften the detail.
       const side = sz >= 0 ? 1 : -1;
-      const readingX = Math.max(0, Math.min(1, (1.1 - Math.abs(sx + side * 0.55)) / 0.26));
-      const readingY = Math.max(0, Math.min(1, (1.16 - Math.abs(sy - side * 0.55)) / 0.25));
+      const readingX = Math.max(0, Math.min(1, (1.1 - Math.abs(sx + surfaceOffset(side))) / 0.26));
+      const readingY = Math.max(0, Math.min(1, (1.16 - Math.abs(sy - surfaceOffset(side))) / 0.25));
       const readingMask = readingX * readingX * (3 - 2 * readingX) * readingY * readingY * (3 - 2 * readingY);
       // Red holds shallow crumb, pores and cracks; green varies the surface roughness.
       grainData[index] = Math.max(0, Math.min(255, 148 + crumb * 28 + fine * 13 + speckle - pores * 95 - cracks * 110));
@@ -285,7 +289,7 @@ function makeCookie() {
   // Keep the full cookie in the overview; only clear the patch being read.
   const chipRegions = chips.map((chip) => {
     const side = Math.sign(chip.z);
-    const onText = Math.abs(chip.x + side * 0.55) < 1.08 && Math.abs(chip.y - side * 0.55) < 1.15;
+    const onText = Math.abs(chip.x + surfaceOffset(side)) < 1.08 && Math.abs(chip.y - surfaceOffset(side)) < 1.15;
     return onText ? (side === 1 ? "writing" : "about") : "rim";
   });
   for (const name of ["rim", "writing", "about"] as const) {
@@ -510,6 +514,7 @@ export function mountCookieMoon(host: HTMLElement) {
   const canvas = host.querySelector<HTMLCanvasElement>("canvas")!;
   const viewport = host.querySelector<HTMLElement>("[data-cookie-viewport]")!;
   const face = host.querySelector<HTMLElement>("[data-cookie-face]")!;
+  const backFace = host.querySelector<HTMLElement>("[data-cookie-face-back]")!;
   const returnButton = host.querySelector<HTMLButtonElement>(".cookie-return")!;
   const announcement = host.querySelector<HTMLElement>("[data-cookie-announcement]")!;
   const hint = host.querySelector<HTMLElement>("[data-cookie-hint]")!;
@@ -589,29 +594,53 @@ export function mountCookieMoon(host: HTMLElement) {
   // itself a real HTML button laid on the same plane for crisp, focusable text.
   const flagScale = 0.00475;
   const flagPlane = 0.62;
-  const flagCloth = { width: 0.94, height: 0.44 };
+  const clothHeight = 0.44;
   const flags = [
     // lean tilts each pole off vertical (radians, positive leans left), as if pushed in by hand;
     // feet are placed on bare dough, clear of the chips. swing turns the cloth about its
     // pole toward the default camera, since the cookie's resting yaw foreshortens the left side.
-    { name: "writing", x: -0.92, top: 0.86, base: -0.12, lean: 0.17, swing: 0.1 },
-    { name: "about", x: 0.56, top: 0.44, base: -0.28, lean: -0.12, swing: 0 },
+    { name: "writing", side: 0, x: -0.92, top: 0.86, base: -0.12, lean: 0.17, swing: 0.1, width: 0.94 },
+    { name: "about", side: 0, x: 0.56, top: 0.44, base: -0.28, lean: -0.12, swing: 0, width: 1.08 },
+    { name: "about", side: 1, x: -0.33, top: 0.55, base: -0.25, lean: 0.1, swing: 0, width: 0.94 },
   ] as const;
   // Cloths catch the same breeze, so they take only a little of their pole's lean.
   const clothLean = 0.33;
-  const faceBounds = { left: -1.05, right: 1.55, top: 1, bottom: -0.2 };
-  face.style.width = `${(faceBounds.right - faceBounds.left) / flagScale}px`;
-  face.style.height = `${(faceBounds.top - faceBounds.bottom) / flagScale}px`;
-  const flagGroup = new Group();
+  const faceBounds = { left: -1.05, right: 1.7, top: 1, bottom: -0.2 };
+  // Each side turns as one: its HTML cloths, plus the poles that hide with them.
+  const flagSides = [face, backFace].map((element, index) => {
+    element.style.width = `${(faceBounds.right - faceBounds.left) / flagScale}px`;
+    element.style.height = `${(faceBounds.top - faceBounds.bottom) / flagScale}px`;
+    const pivot = new Group();
+    pivot.rotation.y = index * Math.PI;
+    const poles = new Group();
+    pivot.add(poles);
+    const object = new CSS3DObject(element);
+    // CSS3DObject forces pointer-events on; only the flag cloths should catch
+    // the pointer, so drags between and around them still turn the cookie.
+    element.style.pointerEvents = "none";
+    // Let each cloth tilt in real 3D rather than being flattened into the nav's plane.
+    element.style.transformStyle = "preserve-3d";
+    object.position.set(
+      (faceBounds.left + faceBounds.right) / 2,
+      (faceBounds.top + faceBounds.bottom) / 2,
+      flagPlane,
+    );
+    // The flag styles render at 2× size for sharper text in the 3D view.
+    object.scale.setScalar(flagScale);
+    pivot.add(object);
+    cookie.add(pivot);
+    return { element, object, poles };
+  });
   const poleMaterial = new MeshStandardMaterial({ color: "#dfe3ea", metalness: 0.55, roughness: 0.32 });
   // Shadow-only stand-ins let the HTML cloth cast a shadow onto the cookie.
   const clothShadowMaterial = new MeshBasicMaterial({ colorWrite: false, depthWrite: false, side: DoubleSide });
   for (const flag of flags) {
-    const button = face.querySelector<HTMLElement>(`[data-cookie-destination="${flag.name}"]`)!;
+    const side = flagSides[flag.side];
+    const button = side.element.querySelector<HTMLElement>(`[data-cookie-destination="${flag.name}"]`)!;
     button.style.left = `${(flag.x - faceBounds.left) / flagScale}px`;
     button.style.top = `${(faceBounds.top - flag.top) / flagScale}px`;
-    button.style.width = `${flagCloth.width / flagScale}px`;
-    button.style.height = `${flagCloth.height / flagScale}px`;
+    button.style.width = `${flag.width / flagScale}px`;
+    button.style.height = `${clothHeight / flagScale}px`;
     const along = new Vector3(-Math.sin(flag.lean), Math.cos(flag.lean), 0);
     const lift = flag.lean * clothLean;
     const level = new Vector3(Math.cos(lift), Math.sin(lift), 0);
@@ -637,40 +666,26 @@ export function mountCookieMoon(host: HTMLElement) {
     const clothShadow = new Mesh(new PlaneGeometry(1, 1), clothShadowMaterial);
     clothShadow.matrixAutoUpdate = false;
     clothShadow.matrix.makeBasis(
-      across.clone().multiplyScalar(flagCloth.width),
-      up.clone().multiplyScalar(flagCloth.height),
+      across.clone().multiplyScalar(flag.width),
+      up.clone().multiplyScalar(clothHeight),
       new Vector3().crossVectors(across, up).normalize(),
     ).setPosition(
       attach.clone()
-        .addScaledVector(across, flagCloth.width / 2)
-        .addScaledVector(up, -flagCloth.height / 2),
+        .addScaledVector(across, flag.width / 2)
+        .addScaledVector(up, -clothHeight / 2),
     );
     for (const mesh of [pole, finial, clothShadow]) {
       mesh.castShadow = true;
-      flagGroup.add(mesh);
+      side.poles.add(mesh);
     }
   }
-  cookie.add(flagGroup);
-  const faceObject = new CSS3DObject(face);
-  // CSS3DObject forces pointer-events on; only the flag cloths should catch
-  // the pointer, so drags between and around them still turn the cookie.
-  face.style.pointerEvents = "none";
-  // Let each cloth tilt in real 3D rather than being flattened into the nav's plane.
-  face.style.transformStyle = "preserve-3d";
-  faceObject.position.set(
-    (faceBounds.left + faceBounds.right) / 2,
-    (faceBounds.top + faceBounds.bottom) / 2,
-    flagPlane,
-  );
-  // The flag styles render at 2× size for sharper text in the 3D view.
-  faceObject.scale.setScalar(flagScale);
-  cookie.add(faceObject);
   type Destination = "home" | "writing" | "about";
   const surfaces = (["writing", "about"] as const).map((name) => {
     const element = host.querySelector<HTMLElement>(`[data-cookie-surface="${name}"]`)!;
     const object = new CSS3DObject(element);
     const back = name === "about";
-    object.position.set(back ? 0.55 : -0.55, back ? -0.55 : 0.55, back ? -0.58 : 0.58);
+    const side = back ? -1 : 1;
+    object.position.set(-surfaceOffset(side), surfaceOffset(side), side * 0.58);
     object.rotation.y = back ? Math.PI : 0;
     // Surface styles render at 2× size, then scale down for crisper 3D text.
     object.scale.setScalar(0.0021);
@@ -807,6 +822,34 @@ export function mountCookieMoon(host: HTMLElement) {
 
   function requestRender() {
     needsRender = true;
+  }
+  const placeHashes: Record<Destination, string> = { home: "", writing: "#notes", about: "#about" };
+  function placeFromHash(): Destination {
+    if (window.location.hash === placeHashes.writing) return "writing";
+    return window.location.hash === placeHashes.about ? "about" : "home";
+  }
+  /** Fly somewhere the visitor chose, leaving a history entry for Back to return to. */
+  function travelTo(next: Destination) {
+    if (window.location.hash !== placeHashes[next]) {
+      history.pushState(null, "", placeHashes[next] || window.location.pathname + window.location.search);
+    }
+    flyTo(next);
+  }
+  function onPopState() {
+    const next = placeFromHash();
+    if (next === destination) return;
+    cancelExit();
+    flyTo(next);
+  }
+  function skipFlight() {
+    if (!flight || flight.duration === 0) return;
+    // The next frame then sees a finished flight and lands the normal way.
+    flight.start = -Infinity;
+    requestRender();
+  }
+  function onFlightKey(event: KeyboardEvent) {
+    if (event.repeat || ["Escape", "Tab", "Shift", "Control", "Alt", "Meta"].includes(event.key)) return;
+    skipFlight();
   }
   function endRainbow() {
     rainbowStart = null;
@@ -947,7 +990,7 @@ export function mountCookieMoon(host: HTMLElement) {
     controls.update(0);
   }
   function reset() {
-    flyTo("home");
+    travelTo("home");
   }
   function finishEntrance() {
     if (!entrance) return;
@@ -961,6 +1004,9 @@ export function mountCookieMoon(host: HTMLElement) {
   function finishFlight() {
     flight = null;
     delete host.dataset.traveling;
+    hint.textContent = destination === "home"
+      ? "Pick a place to fly to · Drag to explore"
+      : `${destination === "writing" ? "Notes" : "About"} · Escape to fly back`;
     controls.enabled = destination === "home";
     controls.enableDamping = true;
     updateMotion();
@@ -992,9 +1038,7 @@ export function mountCookieMoon(host: HTMLElement) {
     host.dataset.traveling = "true";
     announcement.textContent = next === "home" ? "Flying back to the whole cookie." : `Flying to ${next === "writing" ? "Notes" : "About"}.`;
     returnButton.hidden = next === "home";
-    hint.textContent = next === "home"
-      ? "Pick a place to fly to · Drag to explore"
-      : `${next === "writing" ? "Notes" : "About"} · Escape to fly back`;
+    hint.textContent = "Flying · Click or tap to land";
     buttons.forEach((button) => {
       button.disabled = next !== "home" && button.dataset.cookieAction !== "reset";
     });
@@ -1095,7 +1139,7 @@ export function mountCookieMoon(host: HTMLElement) {
     const travelButton = (event.target as Element).closest<HTMLButtonElement>("[data-cookie-destination]");
     if (travelButton) {
       const next = travelButton.dataset.cookieDestination;
-      if (next === "home" || next === "writing" || next === "about") flyTo(next);
+      if (next === "home" || next === "writing" || next === "about") travelTo(next);
       return;
     }
     const button = (event.target as Element).closest<HTMLButtonElement>(
@@ -1166,7 +1210,7 @@ export function mountCookieMoon(host: HTMLElement) {
     requestRender();
   }
   function onFaceFocusOut(event: FocusEvent) {
-    if (event.relatedTarget instanceof Node && face.contains(event.relatedTarget)) return;
+    if (event.relatedTarget instanceof Node && (event.currentTarget as Node).contains(event.relatedTarget)) return;
     faceFocused = false;
     updateMotion();
     requestRender();
@@ -1180,7 +1224,7 @@ export function mountCookieMoon(host: HTMLElement) {
   }
   function renderFace() {
     for (const { object, element, active } of [
-      { object: faceObject, element: face, active: destination === "home" && !flight },
+      ...flagSides.map((side) => ({ ...side, active: destination === "home" && !flight })),
       ...surfaces.map((surface) => ({ ...surface, active: destination === surface.name })),
     ]) {
       object.visible = active && facesCamera(object);
@@ -1195,10 +1239,12 @@ export function mountCookieMoon(host: HTMLElement) {
     stars.position.copy(camera.position);
     // Poles and cloth shadows come and go with the HTML cloth they belong to.
     scene.updateMatrixWorld();
-    const flagsVisible = destination === "home" && !flight && facesCamera(faceObject);
-    if (flagGroup.visible !== flagsVisible) {
-      flagGroup.visible = flagsVisible;
-      renderer.shadowMap.needsUpdate = true;
+    for (const { object, poles } of flagSides) {
+      const flagsVisible = destination === "home" && !flight && facesCamera(object);
+      if (poles.visible !== flagsVisible) {
+        poles.visible = flagsVisible;
+        renderer.shadowMap.needsUpdate = true;
+      }
     }
     planets.setDrawn(false);
     renderer.render(scene, camera);
@@ -1297,9 +1343,12 @@ export function mountCookieMoon(host: HTMLElement) {
       cancelExit();
       return;
     }
-    if (event.key === "Escape" && (destination !== "home" || flight)) {
+    if (event.key === "Escape" && flight && destination === "home") {
       event.preventDefault();
-      flyTo("home");
+      skipFlight();
+    } else if (event.key === "Escape" && destination !== "home") {
+      event.preventDefault();
+      travelTo("home");
     }
   }
   function onMotionPreference() {
@@ -1412,16 +1461,21 @@ export function mountCookieMoon(host: HTMLElement) {
   });
   visibilityObserver.observe(host);
   host.addEventListener("click", onAction);
+  host.addEventListener("pointerdown", skipFlight);
   document.addEventListener("keydown", onEscape);
+  document.addEventListener("keydown", onFlightKey);
+  window.addEventListener("popstate", onPopState);
   canvas.addEventListener("keydown", onKey);
   canvas.addEventListener("pointerdown", onChipPointerDown);
   canvas.addEventListener("pointermove", onChipPointerMove);
   canvas.addEventListener("pointerup", onChipPointerUp);
   canvas.addEventListener("pointercancel", onChipPointerCancel);
-  face.addEventListener("pointerenter", onFacePointerEnter);
-  face.addEventListener("pointerleave", onFacePointerLeave);
-  face.addEventListener("focusin", onFaceFocusIn);
-  face.addEventListener("focusout", onFaceFocusOut);
+  for (const { element } of flagSides) {
+    element.addEventListener("pointerenter", onFacePointerEnter);
+    element.addEventListener("pointerleave", onFacePointerLeave);
+    element.addEventListener("focusin", onFaceFocusIn);
+    element.addEventListener("focusout", onFaceFocusOut);
+  }
   controls.addEventListener("start", onStart);
   controls.addEventListener("change", requestRender);
   reducedMotion.addEventListener("change", onMotionPreference);
@@ -1440,16 +1494,21 @@ export function mountCookieMoon(host: HTMLElement) {
     themeObserver.disconnect();
     visibilityObserver.disconnect();
     host.removeEventListener("click", onAction);
+    host.removeEventListener("pointerdown", skipFlight);
     document.removeEventListener("keydown", onEscape);
+    document.removeEventListener("keydown", onFlightKey);
+    window.removeEventListener("popstate", onPopState);
     canvas.removeEventListener("keydown", onKey);
     canvas.removeEventListener("pointerdown", onChipPointerDown);
     canvas.removeEventListener("pointermove", onChipPointerMove);
     canvas.removeEventListener("pointerup", onChipPointerUp);
     canvas.removeEventListener("pointercancel", onChipPointerCancel);
-    face.removeEventListener("pointerenter", onFacePointerEnter);
-    face.removeEventListener("pointerleave", onFacePointerLeave);
-    face.removeEventListener("focusin", onFaceFocusIn);
-    face.removeEventListener("focusout", onFaceFocusOut);
+    for (const { element } of flagSides) {
+      element.removeEventListener("pointerenter", onFacePointerEnter);
+      element.removeEventListener("pointerleave", onFacePointerLeave);
+      element.removeEventListener("focusin", onFaceFocusIn);
+      element.removeEventListener("focusout", onFaceFocusOut);
+    }
     reducedMotion.removeEventListener("change", onMotionPreference);
     window.removeEventListener("pageshow", onPageShow);
     window.removeEventListener("pagehide", onPageHide);
@@ -1474,9 +1533,11 @@ export function mountCookieMoon(host: HTMLElement) {
     depthProxy.material.dispose();
     planetRenderer.dispose();
     planetCanvas.remove();
-    face.hidden = true;
-    faceObject.removeFromParent();
-    viewport.appendChild(face);
+    for (const { element, object } of flagSides) {
+      element.hidden = true;
+      object.removeFromParent();
+      viewport.appendChild(element);
+    }
     for (const surface of surfaces) {
       surface.element.hidden = true;
       surface.object.removeFromParent();
@@ -1496,6 +1557,8 @@ export function mountCookieMoon(host: HTMLElement) {
   status.hidden = true;
   face.hidden = false;
   host.dataset.state = "ready";
+  // A shared link, a reload or Back from an article lands straight on that side.
+  if (placeFromHash() !== "home") flyTo(placeFromHash(), true);
   if (entrance) host.dataset.entering = "true";
   frame = requestAnimationFrame(animate);
 }

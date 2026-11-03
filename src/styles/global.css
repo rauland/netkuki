@@ -316,6 +316,13 @@ a:focus-visible {
 .cookie-flag[data-cookie-destination="about"] span {
   animation-delay: -1.7s;
 }
+/* This flag's page is round the back, so it says it will turn the cookie over. */
+.cookie-flag-turn {
+  margin-left: 10px;
+  color: var(--accent);
+  font-size: 0.7em;
+  font-style: normal;
+}
 .cookie-flag:is(:hover, :focus-visible) span {
   color: var(--accent);
   box-shadow:
