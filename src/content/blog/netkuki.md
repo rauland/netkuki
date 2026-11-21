@@ -57,7 +57,7 @@ If you’re going to turn a cookie over, there should be something to find.
 
 <details>
   <summary>A hint for the curious</summary>
-  <p>Fly to the About side and tap the chocolate chips around the outside of the cookie. One of them turns the whole cookie rainbow for ten seconds.</p>
+  <p>Five of the chocolate chips twinkle now and then: two on the front and three round the back. Tap all five and see what happens.</p>
 </details>
 
 ## Under the cookie

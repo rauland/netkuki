@@ -1,6 +1,8 @@
 import {
   ACESFilmicToneMapping,
+  AdditiveBlending,
   BufferGeometry,
+  CanvasTexture,
   CapsuleGeometry,
   Color,
   CylinderGeometry,
@@ -33,6 +35,8 @@ import {
   Scene,
   ShaderChunk,
   SphereGeometry,
+  Sprite,
+  SpriteMaterial,
   SRGBColorSpace,
   TorusGeometry,
   Vector2,
@@ -291,11 +295,39 @@ function makeCookie() {
     const side = Math.sign(chip.z);
     const onText = Math.abs(chip.x + surfaceOffset(side)) < 1.08 && Math.abs(chip.y - surfaceOffset(side)) < 1.15;
     return onText ? (side === 1 ? "writing" : "about") : "rim";
-  });
-  for (const name of ["rim", "writing", "about"] as const) {
+  }) as ("rim" | "writing" | "about" | "treat")[];
+  // Five chips that twinkle, two on the front and three round the back. Tapping all
+  // five turns the cookie rainbow. They stay off the reading panels and clear of the
+  // flags (these areas follow the flag cloths and poles in mountCookieMoon).
+  const flagKeepOut = [
+    { side: 1, left: -1.15, right: 0.25, top: 1.05, bottom: -0.3 },
+    { side: 1, left: 0.35, right: 1.85, top: 0.65, bottom: -0.45 },
+    { side: -1, left: -0.85, right: 0.55, top: 0.75, bottom: -0.45 },
+  ];
+  const treatChips: number[] = [];
+  for (const [side, count] of [[1, 2], [-1, 3]] as const) {
+    const candidates = chips
+      .flatMap((chip, index) => Math.sign(chip.z) === side && chipRegions[index] === "rim" &&
+        Math.hypot(chip.x, chip.y) < radius * 0.8 &&
+        !flagKeepOut.some((area) => area.side === side &&
+          chip.x > area.left && chip.x < area.right && chip.y < area.top && chip.y > area.bottom)
+        ? [index] : [])
+      .sort((a, b) => chips[b].size - chips[a].size);
+    const chosen: number[] = [];
+    // Start with the biggest, then take whichever is farthest from those already chosen.
+    while (chosen.length < count && chosen.length < candidates.length) {
+      const spread = (index: number) => Math.min(...chosen.map((other) =>
+        Math.hypot(chips[index].x - chips[other].x, chips[index].y - chips[other].y)));
+      chosen.push(candidates.filter((index) => !chosen.includes(index))
+        .reduce((best, index) => spread(index) > spread(best) ? index : best));
+    }
+    treatChips.push(...chosen);
+  }
+  for (const index of treatChips) chipRegions[index] = "treat";
+  for (const name of ["rim", "writing", "about", "treat"] as const) {
     const indices = chipRegions.flatMap((region, index) => region === name ? [index] : []);
     const data = new Uint8Array([255, 255, 255, 255]);
-    const texture = name === "rim" ? null : new DataTexture(data, 1, 1, RGBAFormat);
+    const texture = name === "rim" || name === "treat" ? null : new DataTexture(data, 1, 1, RGBAFormat);
     if (texture) texture.needsUpdate = true;
     const material = new MeshStandardMaterial({
       color: "#292929",
@@ -310,7 +342,7 @@ function makeCookie() {
     chocolateMaterials.push(material);
     const chocolate = new InstancedMesh(chipGeometry, material, indices.length);
     chocolate.castShadow = chocolate.receiveShadow = true;
-    if (texture && name !== "rim") {
+    if (texture && (name === "writing" || name === "about")) {
       // The same alpha map fades the shadow, so invisible chips leave no shadow.
       chocolate.customDepthMaterial = new MeshDepthMaterial({
         depthPacking: RGBADepthPacking,
@@ -327,6 +359,7 @@ function makeCookie() {
   const facing = new Vector3(0, 0, 1);
   const scale = new Vector3();
   const position = new Vector3();
+  const treats: { mesh: InstancedMesh; index: number; position: Vector3; rotation: Quaternion; scale: Vector3; normal: Vector3 }[] = [];
   for (let i = 0; i < chips.length; i++) {
     const chip = chips[i];
     normal
@@ -348,6 +381,9 @@ function makeCookie() {
     );
     matrix.compose(position, rotation, scale);
     const slot = chipSlots.get(i)!;
+    if (chipRegions[i] === "treat") {
+      treats.push({ ...slot, position: position.clone(), rotation: rotation.clone(), scale: scale.clone(), normal: normal.clone() });
+    }
     slot.mesh.setMatrixAt(slot.index, matrix);
     slot.mesh.setColorAt(slot.index, new Color().setScalar(0.7 + random() * 0.5));
   }
@@ -364,14 +400,7 @@ function makeCookie() {
     rainbowStrength.value = strength;
     rainbowPhase.value = phase;
   }
-  // Back chips beside the About paragraph, best first. The first one on screen and
-  // clear of the text becomes the secret, so narrow screens still show one.
-  const secretChips = chips
-    .flatMap((chip, index) => chip.z < 0 && chipRegions[index] === "rim"
-      ? [{ ...chipSlots.get(index)!, position: new Vector3(chip.x, chip.y, chip.z), rank: Math.hypot(chip.x + 0.85, chip.y + 0.31) }]
-      : [])
-    .sort((a, b) => a.rank - b.rank);
-  return { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus, setRainbow, secretChips };
+  return { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus, setRainbow, treats };
 }
 
 const sprinkleColors = ["#f58ab8", "#6fbcef", "#ffc94d", "#9b87f5", "#ffffff"];
@@ -573,8 +602,56 @@ export function mountCookieMoon(host: HTMLElement) {
   const scene = new Scene();
   const camera = new PerspectiveCamera(38, 1, 0.1, 120);
   camera.position.set(0, 0.05, 7.4);
-  const { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus, setRainbow, secretChips } = makeCookie();
-  let secretChip = secretChips[0];
+  const { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus, setRainbow, treats } = makeCookie();
+  // How eaten each twinkling chip is (0 whole, 1 gone), and any bite or regrowth in progress.
+  const treatStates = treats.map(() => ({ amount: 0, from: 0, to: 0, start: null as number | null }));
+  const treatMatrix = new Matrix4();
+  const sparkleCanvas = document.createElement("canvas");
+  sparkleCanvas.width = sparkleCanvas.height = 64;
+  const sparkleContext = sparkleCanvas.getContext("2d")!;
+  const glow = sparkleContext.createRadialGradient(32, 32, 0, 32, 32, 32);
+  glow.addColorStop(0, "#ffffffcc");
+  glow.addColorStop(0.18, "#fff4d666");
+  glow.addColorStop(1, "#fff4d600");
+  sparkleContext.fillStyle = glow;
+  sparkleContext.fillRect(0, 0, 64, 64);
+  // A thin four-pointed star over the glow.
+  sparkleContext.fillStyle = "#ffffff";
+  for (const [x, y] of [[1, 0], [0, 1]]) {
+    sparkleContext.beginPath();
+    sparkleContext.moveTo(32 - 30 * x, 32 - 30 * y);
+    sparkleContext.lineTo(32 + 2.5 * y, 32 + 2.5 * x);
+    sparkleContext.lineTo(32 + 30 * x, 32 + 30 * y);
+    sparkleContext.lineTo(32 - 2.5 * y, 32 - 2.5 * x);
+    sparkleContext.fill();
+  }
+  const sparkleTexture = new CanvasTexture(sparkleCanvas);
+  const sparklePosition = new Vector3();
+  const sparkleNormal = new Vector3();
+  const sparkleToCamera = new Vector3();
+  const treatPoint = new Vector3();
+  sparkleTexture.colorSpace = SRGBColorSpace;
+  const sparkles = treats.map((treat) => {
+    const sparkle = new Sprite(new SpriteMaterial({
+      map: sparkleTexture,
+      blending: AdditiveBlending,
+      depthWrite: false,
+      // Drawn over the cookie rather than into it, so the flat star never cuts through
+      // the chip or dough; updateSparkles hides it whenever its chip faces away.
+      depthTest: false,
+      transparent: true,
+      // Full brightness: tone mapping would dull the glint to grey on the pale dough.
+      toneMapped: false,
+    }));
+    // Centred on the dark chip, where a glint stands out on every palette.
+    sparkle.position.copy(treat.position).addScaledVector(treat.normal, 0.08);
+    sparkle.visible = false;
+    sparkle.renderOrder = 1;
+    cookie.add(sparkle);
+    return sparkle;
+  });
+  const treatPosition = new Vector3();
+  const treatScale = new Vector3();
   for (const texture of [grainTexture, crumbTexture]) {
     texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
   }
@@ -851,10 +928,87 @@ export function mountCookieMoon(host: HTMLElement) {
     if (event.repeat || ["Escape", "Tab", "Shift", "Control", "Alt", "Meta"].includes(event.key)) return;
     skipFlight();
   }
+  function restingHint() {
+    return destination === "home"
+      ? "Pick a place to fly to · Drag to explore"
+      : `${destination === "writing" ? "Notes" : "About"} · Escape to fly back`;
+  }
+  /** A little note that floats up from the tapped chip: five tiny cookies, one filled per find. */
+  function popProgress(event: PointerEvent, found: number) {
+    const bounds = host.getBoundingClientRect();
+    const pop = document.createElement("p");
+    pop.className = "cookie-pop";
+    // The live announcement already tells screen readers.
+    pop.setAttribute("aria-hidden", "true");
+    const dots = document.createElement("span");
+    dots.className = "cookie-pop-dots";
+    for (let i = 0; i < treats.length; i++) {
+      const dot = document.createElement("span");
+      dot.className = i < found ? "status-dot" : "status-dot is-left";
+      dots.append(dot);
+    }
+    const left = treats.length - found;
+    pop.append(dots, left === 0 ? "Rainbow time!" : `${left} more to find`);
+    // Keep the note inside the cookie's frame near the edges.
+    pop.style.left = `${Math.min(Math.max(event.clientX - bounds.left, 90), bounds.width - 90)}px`;
+    pop.style.top = `${Math.max(event.clientY - bounds.top - 18, 56)}px`;
+    host.append(pop);
+    pop.addEventListener("animationend", () => pop.remove());
+    window.setTimeout(() => pop.remove(), 3000);
+  }
+  function setTreat(index: number, to: number) {
+    const state = treatStates[index];
+    state.from = state.amount;
+    state.to = to;
+    state.start = performance.now();
+    requestRender();
+  }
+  function updateTreats(time: number) {
+    for (const [index, state] of treatStates.entries()) {
+      if (state.start === null) continue;
+      const progress = reducedMotion.matches ? 1 : Math.max(0, Math.min((time - state.start) / 420, 1));
+      const eased = progress * progress * (3 - 2 * progress);
+      state.amount = state.from + (state.to - state.from) * eased;
+      const treat = treats[index];
+      // A bite hops the chip off the dough before it disappears.
+      const hop = state.to > state.from ? Math.sin(Math.PI * Math.min(progress * 1.6, 1)) * 0.14 : 0;
+      treatPosition.copy(treat.position).addScaledVector(treat.normal, hop);
+      treatScale.copy(treat.scale).multiplyScalar(Math.max(1 - state.amount, 0.0001) * (1 + hop * 2));
+      treat.mesh.setMatrixAt(treat.index, treatMatrix.compose(treatPosition, treat.rotation, treatScale));
+      treat.mesh.instanceMatrix.needsUpdate = true;
+      renderer.shadowMap.needsUpdate = true;
+      requestRender();
+      if (progress === 1) state.start = null;
+    }
+  }
+  /** Each chip flares briefly in turn, so only one or two twinkle at a time. */
+  function updateSparkles(time: number) {
+    const shown = destination === "home" && !flight && !leaving && !entrance && rainbowStart === null;
+    for (const [index, sparkle] of sparkles.entries()) {
+      // Only a chip turned towards the camera can catch the light.
+      sparkle.getWorldPosition(sparklePosition);
+      sparkleNormal.copy(treats[index].normal).transformDirection(cookie.matrixWorld);
+      const facing = sparkleNormal.dot(sparkleToCamera.copy(camera.position).sub(sparklePosition).normalize()) > 0.3;
+      const whole = facing && treatStates[index].to === 0 && treatStates[index].amount < 0.01;
+      // With reduced motion, a steady faint glint instead of a flare.
+      const phase = ((time + index * 1370) % 4800) / 700;
+      const flare = reducedMotion.matches ? 0.45 : phase < 1 ? Math.sin(Math.PI * phase) : 0;
+      const visible = shown && whole && flare > 0;
+      if (visible) {
+        sparkle.scale.setScalar(0.5 * flare);
+        sparkle.material.rotation = reducedMotion.matches ? 0 : phase * 0.9;
+        sparkle.material.opacity = Math.min(1, flare * 1.4);
+      }
+      if (visible || sparkle.visible !== visible) requestRender();
+      sparkle.visible = visible;
+    }
+  }
   function endRainbow() {
     rainbowStart = null;
     setRainbow(0, 0);
     delete host.dataset.rainbow;
+    // The twinkling chips grow back, ready for another go.
+    treats.forEach((_, index) => setTreat(index, 0));
     requestRender();
   }
   function updateRainbow(time: number) {
@@ -868,8 +1022,9 @@ export function mountCookieMoon(host: HTMLElement) {
     setRainbow(blend * blend * (3 - 2 * blend), reducedMotion.matches ? 0 : elapsed / 4000);
     requestRender();
   }
-  function isSecretChip(event: PointerEvent) {
-    if (flight || entrance || leaving) return false;
+  /** The twinkling chip under the pointer, if there is a whole one. */
+  function treatAt(event: PointerEvent) {
+    if (flight || entrance || leaving || rainbowStart !== null) return -1;
     const bounds = canvas.getBoundingClientRect();
     chipPointer.set(
       ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
@@ -880,24 +1035,32 @@ export function mountCookieMoon(host: HTMLElement) {
     chipRaycaster.setFromCamera(chipPointer, camera);
     // Pick the nearest visible surface, so the biscuit blocks clicks from the front.
     const hit = chipRaycaster.intersectObjects(cookieMeshes.filter((mesh) => mesh.visible), false)[0];
-    return hit?.object === secretChip.mesh && hit.instanceId === secretChip.index;
+    const index = treats.findIndex((treat) => hit?.object === treat.mesh && hit.instanceId === treat.index);
+    if (index !== -1) return treatStates[index].to === 0 ? index : -1;
+    // Chips are small on a phone, so a touch close to a whole, facing chip counts too.
+    const reach = event.pointerType === "mouse" ? 12 : 30;
+    let nearest = -1;
+    let nearestDistance = reach;
+    for (const [candidate, treat] of treats.entries()) {
+      if (treatStates[candidate].to !== 0) continue;
+      treatPoint.copy(treat.position).applyMatrix4(cookie.matrixWorld);
+      sparkleNormal.copy(treat.normal).transformDirection(cookie.matrixWorld);
+      if (sparkleNormal.dot(sparkleToCamera.copy(camera.position).sub(treatPoint).normalize()) < 0.3) continue;
+      treatPoint.project(camera);
+      const distance = Math.hypot(
+        bounds.left + (treatPoint.x + 1) / 2 * bounds.width - event.clientX,
+        bounds.top + (1 - treatPoint.y) / 2 * bounds.height - event.clientY,
+      );
+      if (distance < nearestDistance) {
+        nearest = candidate;
+        nearestDistance = distance;
+      }
+    }
+    return nearest;
   }
-  function pickSecretChip() {
-    const bounds = viewport.getBoundingClientRect();
-    const blockers = [returnButton, bottomBar, surfaces.find((surface) => surface.name === "about")!.element]
-      .map((element) => element.getBoundingClientRect());
-    scene.updateMatrixWorld(true);
-    camera.updateMatrixWorld();
-    const point = new Vector3();
-    secretChip = secretChips.find((chip) => {
-      point.copy(chip.position).applyMatrix4(cookie.matrixWorld).project(camera);
-      const x = bounds.left + (point.x + 1) / 2 * bounds.width;
-      const y = bounds.top + (1 - point.y) / 2 * bounds.height;
-      const margin = 24;
-      return x > bounds.left + margin && x < bounds.right - margin &&
-        y > bounds.top + margin && y < bounds.bottom - margin &&
-        blockers.every((rect) => x < rect.left - 12 || x > rect.right + 12 || y < rect.top - 12 || y > rect.bottom + 12);
-    }) ?? secretChips[0];
+  /** How far a press can move and still count as a tap; a fingertip wobbles more than a mouse. */
+  function tapSlop(event: PointerEvent) {
+    return event.pointerType === "mouse" ? 6 : 12;
   }
   function onChipPointerDown(event: PointerEvent) {
     if (!event.isPrimary || event.button !== 0) {
@@ -907,7 +1070,7 @@ export function mountCookieMoon(host: HTMLElement) {
     chipPress = { id: event.pointerId, x: event.clientX, y: event.clientY, dragged: false };
   }
   function onChipPointerMove(event: PointerEvent) {
-    if (chipPress && Math.hypot(event.clientX - chipPress.x, event.clientY - chipPress.y) > 6) {
+    if (chipPress && Math.hypot(event.clientX - chipPress.x, event.clientY - chipPress.y) > tapSlop(event)) {
       chipPress.dragged = true;
     }
   }
@@ -918,12 +1081,22 @@ export function mountCookieMoon(host: HTMLElement) {
     const press = chipPress;
     chipPress = null;
     if (!press || press.id !== event.pointerId || press.dragged ||
-      Math.hypot(event.clientX - press.x, event.clientY - press.y) > 6 || !isSecretChip(event)) return;
+      Math.hypot(event.clientX - press.x, event.clientY - press.y) > tapSlop(event)) return;
+    const index = treatAt(event);
+    if (index === -1) return;
+    setTreat(index, 1);
+    const found = treatStates.filter((state) => state.to === 1).length;
+    if (found < treats.length) {
+      popProgress(event, found);
+      announcement.textContent = `${found} of ${treats.length} twinkling chips found.`;
+      return;
+    }
     rainbowStart = performance.now();
     window.clearTimeout(rainbowTimer);
     rainbowTimer = window.setTimeout(endRainbow, 10000);
     host.dataset.rainbow = "true";
-    announcement.textContent = "You found the rainbow cookie! Rainbow colours for ten seconds.";
+    popProgress(event, found);
+    announcement.textContent = "You found all five twinkling chips! Rainbow colours for ten seconds.";
     requestRender();
   }
   function fadeChips(from: number[], to: number[], progress: number) {
@@ -1004,9 +1177,7 @@ export function mountCookieMoon(host: HTMLElement) {
   function finishFlight() {
     flight = null;
     delete host.dataset.traveling;
-    hint.textContent = destination === "home"
-      ? "Pick a place to fly to · Drag to explore"
-      : `${destination === "writing" ? "Notes" : "About"} · Escape to fly back`;
+    hint.textContent = restingHint();
     controls.enabled = destination === "home";
     controls.enableDamping = true;
     updateMotion();
@@ -1015,7 +1186,6 @@ export function mountCookieMoon(host: HTMLElement) {
       : `${destination === "writing" ? "Notes" : "About"}. You have arrived on the cookie’s surface. Press Escape to fly back.`;
     // Render visibility before moving keyboard focus into the destination.
     renderScene();
-    if (destination === "about") pickSecretChip();
     const focusTarget = destination === "home"
       ? face.querySelector<HTMLButtonElement>("button")
       : surfaces.find((surface) => surface.name === destination)?.element.querySelector<HTMLElement>("h2");
@@ -1372,6 +1542,8 @@ export function mountCookieMoon(host: HTMLElement) {
     if (disposed) return;
     if (visible && !document.hidden) {
       updateRainbow(time);
+      updateTreats(time);
+      updateSparkles(time);
       if (entrance) {
         entrance.start ??= time;
         const progress = Math.min((time - entrance.start) / entrance.duration, 1);
@@ -1487,6 +1659,7 @@ export function mountCookieMoon(host: HTMLElement) {
     cancelExit();
     disposed = true;
     window.clearTimeout(rainbowTimer);
+    host.querySelectorAll(".cookie-pop").forEach((pop) => pop.remove());
     delete host.dataset.rainbow;
     delete host.dataset.entering;
     cancelAnimationFrame(frame);
@@ -1524,6 +1697,8 @@ export function mountCookieMoon(host: HTMLElement) {
         if (object instanceof InstancedMesh) object.dispose();
       }
     });
+    sparkles.forEach((sparkle) => sparkle.material.dispose());
+    sparkleTexture.dispose();
     grainTexture.dispose();
     crumbTexture.dispose();
     chipFades.forEach((batch) => batch.texture.dispose());
