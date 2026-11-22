@@ -24,6 +24,7 @@ import {
   MeshDepthMaterial,
   MeshStandardMaterial,
   PCFShadowMap,
+  PlaneGeometry,
   PerspectiveCamera,
   Points,
   PointLight,
@@ -401,7 +402,7 @@ function makeCookie() {
     rainbowStrength.value = strength;
     rainbowPhase.value = phase;
   }
-  return { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus, setRainbow, treats };
+  return { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus, setRainbow, treats, chips };
 }
 
 const sprinkleColors = ["#f58ab8", "#6fbcef", "#ffc94d", "#9b87f5", "#ffffff"];
@@ -710,7 +711,7 @@ export function mountCookieMoon(host: HTMLElement) {
   const scene = new Scene();
   const camera = new PerspectiveCamera(38, 1, 0.1, 120);
   camera.position.set(0, 0.05, 7.4);
-  const { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus, setRainbow, treats } = makeCookie();
+  const { cookie, grainTexture, crumbTexture, chipFades, setPalette, setReadingFocus, setRainbow, treats, chips } = makeCookie();
   // How eaten each twinkling chip is (0 whole, 1 gone), and any bite or regrowth in progress.
   const treatStates = treats.map(() => ({ amount: 0, from: 0, to: 0, start: null as number | null }));
   const treatMatrix = new Matrix4();
@@ -891,6 +892,121 @@ export function mountCookieMoon(host: HTMLElement) {
     prints.forEach(paintPrint);
     requestRender();
   });
+  // Boot prints walk from "Notes" to the cookie's edge, over the rim and round the back to
+  // "About", a hint that there's more on the other side. Each is pressed into the dough.
+  const bootCanvas = document.createElement("canvas");
+  bootCanvas.width = 64;
+  bootCanvas.height = 128;
+  const boot = bootCanvas.getContext("2d")!;
+  boot.fillStyle = "#ffffff";
+  boot.beginPath();
+  boot.roundRect(10, 4, 44, 74, [22, 22, 14, 14]);
+  boot.roundRect(14, 84, 36, 40, [10, 10, 18, 18]);
+  boot.fill();
+  // Tread: bars cut across the sole and heel.
+  boot.globalCompositeOperation = "destination-out";
+  for (let y = 14; y < 120; y += 11) boot.fillRect(0, y, 64, 4);
+  const bootTexture = new CanvasTexture(bootCanvas);
+  const bootSize = { width: 0.06, length: 0.1 };
+  // The path, as an angle around the cookie's edge: x = a·sin(angle), z = c·cos(angle) runs
+  // from the front (z up), over the rim (z = 0), onto the back (z down).
+  const trailStart = Math.asin(0.4 / 2.1);
+  const trailEnd = Math.PI - Math.asin(1.35 / 2.1);
+  const trailSpot = (angle: number, y: number) => {
+    const across = Math.sqrt(2.1 ** 2 - y ** 2);
+    const deep = 0.36 * Math.sqrt(1 - y ** 2 / 2.1 ** 2);
+    return new Vector3(across * Math.sin(angle), y, deep * Math.cos(angle));
+  };
+  // Where the dough really is in a given direction: the radius and normal of the dough
+  // vertex nearest that direction, so prints sit on the bumps, not under them.
+  const doughPositions = biscuit.geometry.getAttribute("position");
+  const doughNormals = biscuit.geometry.getAttribute("normal");
+  const doughVertex = new Vector3();
+  function onDough(direction: Vector3, normal: Vector3) {
+    let best = -2;
+    let bestIndex = 0;
+    for (let i = 0; i < doughPositions.count; i++) {
+      doughVertex.fromBufferAttribute(doughPositions, i);
+      const closeness = doughVertex.dot(direction) / doughVertex.length();
+      if (closeness > best) {
+        best = closeness;
+        bestIndex = i;
+      }
+    }
+    doughVertex.fromBufferAttribute(doughPositions, bestIndex);
+    normal.fromBufferAttribute(doughNormals, bestIndex).normalize();
+    return direction.clone().multiplyScalar(doughVertex.length());
+  }
+  const trailRandom = seededRandom(511);
+  // Plan the route first: finely spaced points along the path, each free to slide sideways
+  // (in y). Any point too close to a chip is pushed away from it, then the route is smoothed,
+  // so the trail curves round the chips the way someone walking would.
+  const route = Array.from({ length: 400 }, (_, i) => {
+    const angle = trailStart + ((trailEnd - trailStart) * i) / 399;
+    return { angle, y: Math.sin(angle * 2.3) * 0.12 - 0.05 };
+  });
+  const clearance = 0.07;
+  for (let pass = 0; pass < 60; pass++) {
+    for (const point of route) {
+      const spot = trailSpot(point.angle, point.y);
+      for (const chip of chips) {
+        const distance = Math.hypot(spot.x - chip.x, spot.y - chip.y, spot.z - chip.z);
+        const needed = chip.size * 1.3 + clearance;
+        if (distance < needed) point.y += Math.sign(spot.y - chip.y || 1) * (needed - distance) * 0.6;
+      }
+    }
+    for (let i = 1; i < route.length - 1; i++) {
+      route[i].y = (route[i - 1].y + route[i].y * 2 + route[i + 1].y) / 4;
+    }
+  }
+  // Then walk the route in even strides, one footprint each.
+  const steps: { position: Vector3; normal: Vector3; ahead: Vector3 }[] = [];
+  const stride = 0.085;
+  let walked = 0;
+  for (let i = 1; i < route.length; i++) {
+    const from = trailSpot(route[i - 1].angle, route[i - 1].y);
+    const to = trailSpot(route[i].angle, route[i].y);
+    walked += from.distanceTo(to);
+    if (walked < stride && i > 1) continue;
+    walked = 0;
+    const normal = new Vector3();
+    const position = onDough(from.clone().normalize(), normal);
+    steps.push({ position, normal, ahead: to.sub(from).normalize() });
+  }
+  const footprints = new InstancedMesh(
+    new PlaneGeometry(1, 1),
+    new MeshBasicMaterial({
+      map: bootTexture,
+      color: "#000000",
+      transparent: true,
+      opacity: 0.42,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+    }),
+    steps.length,
+  );
+  const printMatrix = new Matrix4();
+  const printSide = new Vector3();
+  const printForward = new Vector3();
+  const printPlace = new Vector3();
+  steps.forEach(({ position, normal, ahead }, index) => {
+    // Left and right feet take turns either side of the path, each turned a touch outward.
+    const foot = index % 2 === 0 ? -1 : 1;
+    printForward.copy(ahead).projectOnPlane(normal).normalize();
+    printSide.crossVectors(printForward, normal).normalize();
+    printForward.applyAxisAngle(normal, foot * -0.12 + (trailRandom() - 0.5) * 0.08);
+    printSide.crossVectors(printForward, normal).normalize();
+    printPlace.copy(position).addScaledVector(normal, 0.004).addScaledVector(printSide, foot * 0.045);
+    printMatrix.makeBasis(
+      printSide.clone().multiplyScalar(bootSize.width),
+      printForward.clone().multiplyScalar(bootSize.length),
+      normal,
+    ).setPosition(printPlace);
+    footprints.setMatrixAt(index, printMatrix);
+  });
+  footprints.instanceMatrix.needsUpdate = true;
+  cookie.add(footprints);
   type Destination = "home" | "writing" | "about";
   // Flying to Notes or About lands at eye level on the dough, where the reading panel
   // stands as a sign and a landmark stands beside it. x and y are on the cookie's face.
@@ -2042,6 +2158,7 @@ export function mountCookieMoon(host: HTMLElement) {
     sparkles.forEach((sparkle) => sparkle.material.dispose());
     sparkleTexture.dispose();
     printEvents.abort();
+    bootTexture.dispose();
     prints.forEach((print) => print.texture.dispose());
     grainTexture.dispose();
     crumbTexture.dispose();
