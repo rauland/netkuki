@@ -22,7 +22,7 @@ const posts = (await getPublishedPosts()).slice(0, 2);
 		<article class="cookie-surface" data-cookie-surface="writing" aria-labelledby="cookie-writing-title" hidden>
 			<p class="cookie-surface-coordinate">THE NOTEBOOK</p>
 			<h2 id="cookie-writing-title" tabindex="-1">What I’m<br />working on.</h2>
-			<p>Things built, lessons learned, and ideas still taking shape.</p>
+			<p>Write-ups from my homelab, the cloud, and building this site.</p>
 			<div class="cookie-surface-posts">
 				{posts.map((post) => (
 					<a href={`/notes/${post.id}/`} data-cookie-exit>
@@ -40,7 +40,7 @@ const posts = (await getPublishedPosts()).slice(0, 2);
 		<article class="cookie-surface" data-cookie-surface="about" aria-labelledby="cookie-about-title" hidden>
 			<p class="cookie-surface-coordinate">THE OTHER SIDE</p>
 			<h2 id="cookie-about-title" tabindex="-1">Hello,<br />I’m rauland.</h2>
-			<p>A systems administrator building secure platforms, automating the repetitive parts, and learning along the way.</p>
+			<p>A software engineer building CI/CD pipelines and secure platforms, and automating the repetitive parts.</p>
 			<ul class="cookie-surface-toolkit" aria-label="Skills and tools">
 				{["Cloud", "Linux", "Infrastructure", "Terraform", "Ansible", "Python"].map((skill) => <li>{skill}</li>)}
 			</ul>

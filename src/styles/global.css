@@ -979,8 +979,7 @@ a:is(:hover, :focus-visible) .link-arrow.is-back {
   letter-spacing: 0.04em;
   color: var(--muted);
 }
-.note-card h2,
-.about-block h3 {
+.note-card h2 {
   font: 600 23px var(--display);
   letter-spacing: -0.04em;
   margin: 0 0 10px;
@@ -1014,11 +1013,6 @@ a:is(:hover, :focus-visible) .link-arrow.is-back {
 .profile-section > .eyebrow {
   margin: 0 0 18px;
 }
-.profile-title {
-  font: 500 clamp(28px, 3.5vw, 38px) / 1.2 var(--display);
-  letter-spacing: -0.05em;
-  margin: 0;
-}
 .profile-copy {
   font-size: 14px;
   line-height: 1.85;
@@ -1040,7 +1034,10 @@ a:is(:hover, :focus-visible) .link-arrow.is-back {
   background: var(--surface);
 }
 .about-block h3 {
-  margin-top: 24px;
+  font: 500 var(--text-fine) var(--sans);
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0 0 12px;
 }
 .about-block p {
   margin: 0;
