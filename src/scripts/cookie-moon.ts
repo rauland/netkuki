@@ -10,7 +10,6 @@ import {
   CylinderGeometry,
   DataTexture,
   DirectionalLight,
-  DoubleSide,
   Euler,
   Float32BufferAttribute,
   Group,
@@ -26,7 +25,6 @@ import {
   MeshStandardMaterial,
   PCFShadowMap,
   PerspectiveCamera,
-  PlaneGeometry,
   Points,
   PointLight,
   PointsMaterial,
@@ -49,6 +47,7 @@ import {
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { ImprovedNoise } from "three/addons/math/ImprovedNoise.js";
 import { CSS3DObject, CSS3DRenderer } from "three/addons/renderers/CSS3DRenderer.js";
+import { DecalGeometry } from "three/addons/geometries/DecalGeometry.js";
 
 // A fixed seed keeps the same cookie when a reader returns or changes theme.
 // How far each reading panel sits from the middle. The back one stays closer in:
@@ -301,11 +300,10 @@ function makeCookie() {
   }) as ("rim" | "writing" | "about" | "treat")[];
   // Five chips that twinkle, two on the front and three round the back. Tapping all
   // five turns the cookie rainbow. They stay off the reading panels and clear of the
-  // flags (these areas follow the flag cloths and poles in mountCookieMoon).
+  // printed lettering (these areas follow the lettering in mountCookieMoon).
   const flagKeepOut = [
-    { side: 1, left: -1.15, right: 0.25, top: 1.05, bottom: -0.3 },
-    { side: 1, left: 0.35, right: 1.85, top: 0.65, bottom: -0.45 },
-    { side: -1, left: -0.85, right: 0.55, top: 0.75, bottom: -0.45 },
+    { side: 1, left: -1.05, right: 0.35, top: 0.25, bottom: -0.35 },
+    { side: -1, left: -0.1, right: 1.3, top: 0.25, bottom: -0.35 },
   ];
   const treatChips: number[] = [];
   for (const [side, count] of [[1, 2], [-1, 3]] as const) {
@@ -683,8 +681,8 @@ export function mountCookieMoon(host: HTMLElement) {
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.25;
-  // The HTML flags sit above the main canvas, so planets are drawn on their own
-  // canvas above the flags, masked by the cookie's depth where they pass behind.
+  // The HTML layer sits above the main canvas, so planets are drawn on their own
+  // canvas above it, masked by the cookie's depth where they pass behind.
   const planetCanvas = document.createElement("canvas");
   planetCanvas.className = "cookie-planets";
   planetCanvas.setAttribute("aria-hidden", "true");
@@ -777,94 +775,122 @@ export function mountCookieMoon(host: HTMLElement) {
   htmlRenderer.domElement.className = "cookie-html";
   viewport.appendChild(htmlRenderer.domElement);
   viewport.appendChild(planetCanvas);
-  // Flags planted in the dough: WebGL poles and cloth shadows, with the cloth
-  // itself a real HTML button laid on the same plane for crisp, focusable text.
-  const flagScale = 0.00475;
-  const flagPlane = 0.62;
-  const clothHeight = 0.44;
-  const flags = [
-    // lean tilts each pole off vertical (radians, positive leans left), as if pushed in by hand;
-    // feet are placed on bare dough, clear of the chips. swing turns the cloth about its
-    // pole toward the default camera, since the cookie's resting yaw foreshortens the left side.
-    { name: "writing", side: 0, x: -0.92, top: 0.86, base: -0.12, lean: 0.17, swing: 0.1, width: 0.94 },
-    { name: "about", side: 1, x: -0.33, top: 0.55, base: -0.25, lean: 0.1, swing: 0, width: 0.94 },
-  ] as const;
-  // Cloths catch the same breeze, so they take only a little of their pole's lean.
-  const clothLean = 0.33;
-  const faceBounds = { left: -1.05, right: 1.7, top: 1, bottom: -0.2 };
-  // Each side turns as one: its HTML cloths, plus the poles that hide with them.
+  // "Notes" and "About" are printed on the dough, just in front of where each sign springs
+  // up. The lettering is pressed onto the dough's own bumps, so the cookie hides it
+  // naturally as it turns; an invisible HTML button laid over it takes clicks and focus.
+  const letteringScale = 0.00475;
+  const letteringSize = { width: 1.25, height: 0.4 };
+  const letterings = [
+    // The lettering's centre, on bare dough. The back side's space is turned around,
+    // so About's (-0.6, -0.05) here is (0.6, -0.05) on the cookie.
+    { x: -0.35, y: -0.05 },
+    { x: -0.6, y: -0.05 },
+  ];
+  cookie.updateMatrixWorld(true);
+  const biscuit = cookie.children.find((child) => child instanceof Mesh && !(child instanceof InstancedMesh)) as Mesh;
   const flagSides = [face, backFace].map((element, index) => {
-    element.style.width = `${(faceBounds.right - faceBounds.left) / flagScale}px`;
-    element.style.height = `${(faceBounds.top - faceBounds.bottom) / flagScale}px`;
+    const lettering = letterings[index];
     const pivot = new Group();
     pivot.rotation.y = index * Math.PI;
-    const poles = new Group();
-    pivot.add(poles);
-    const object = new CSS3DObject(element);
-    // CSS3DObject forces pointer-events on; only the flag cloths should catch
-    // the pointer, so drags between and around them still turn the cookie.
-    element.style.pointerEvents = "none";
-    // Let each cloth tilt in real 3D rather than being flattened into the nav's plane.
-    element.style.transformStyle = "preserve-3d";
-    object.position.set(
-      (faceBounds.left + faceBounds.right) / 2,
-      (faceBounds.top + faceBounds.bottom) / 2,
-      flagPlane,
-    );
-    // The flag styles render at 2× size for sharper text in the 3D view.
-    object.scale.setScalar(flagScale);
-    pivot.add(object);
     cookie.add(pivot);
-    return { element, object, poles };
+    element.style.width = `${letteringSize.width / letteringScale}px`;
+    element.style.height = `${letteringSize.height / letteringScale}px`;
+    // CSS3DObject forces pointer-events on; only the button should catch the pointer.
+    element.style.pointerEvents = "none";
+    const object = new CSS3DObject(element);
+    // Just above the dough, which domes up towards the middle of the cookie.
+    const dough = 0.36 * Math.sqrt(Math.max(0, 1 - (lettering.x ** 2 + lettering.y ** 2) / 2.1 ** 2));
+    object.position.set(lettering.x, lettering.y, dough + 0.03);
+    object.scale.setScalar(letteringScale);
+    pivot.add(object);
+    return { element, object, pivot };
   });
   const poleMaterial = new MeshStandardMaterial({ color: "#dfe3ea", metalness: 0.55, roughness: 0.32 });
-  // Shadow-only stand-ins let the HTML cloth cast a shadow onto the cookie.
-  const clothShadowMaterial = new MeshBasicMaterial({ colorWrite: false, depthWrite: false, side: DoubleSide });
-  for (const flag of flags) {
-    const side = flagSides[flag.side];
-    const button = side.element.querySelector<HTMLElement>(`[data-cookie-destination="${flag.name}"]`)!;
-    button.style.left = `${(flag.x - faceBounds.left) / flagScale}px`;
-    button.style.top = `${(faceBounds.top - flag.top) / flagScale}px`;
-    button.style.width = `${flag.width / flagScale}px`;
-    button.style.height = `${clothHeight / flagScale}px`;
-    const along = new Vector3(-Math.sin(flag.lean), Math.cos(flag.lean), 0);
-    const lift = flag.lean * clothLean;
-    const level = new Vector3(Math.cos(lift), Math.sin(lift), 0);
-    const attach = new Vector3(flag.x, flag.top, flagPlane);
-    // Sink the foot just below the dough so the pole reads as pushed in.
-    const foot = attach.clone().addScaledVector(along, flag.base - flag.top).setZ(0.29);
-    const up = attach.clone().sub(foot).normalize();
-    const tip = attach.clone().addScaledVector(up, 0.04);
-    // Swing the cloth about the pole so it turns to face the viewer; its free end
-    // moves slightly back, which turns the cloth's face toward the camera.
-    const across = level.clone().applyAxisAngle(up, flag.swing);
-    // The cloth's left edge runs down the pole while its top edge stays nearly
-    // level (a slight skew), and it tips back with the pole into the dough.
-    const tilt = Math.atan2(flagPlane - foot.z, flag.top - flag.base);
-    const skew = [Math.cos(lift), -Math.sin(lift), Math.sin(flag.lean), Math.cos(flag.lean)].map((n) => n.toFixed(4));
-    button.style.transform = `matrix(${skew.join(", ")}, 0, 0) rotateX(${-tilt}rad) rotateY(${flag.swing}rad)`;
-    const pole = new Mesh(new CylinderGeometry(0.022, 0.027, foot.distanceTo(tip), 16), poleMaterial);
-    pole.position.lerpVectors(foot, tip, 0.5);
-    pole.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), tip.clone().sub(foot).normalize());
-    const finial = new Mesh(new SphereGeometry(0.045, 16, 12), poleMaterial);
-    finial.position.copy(tip);
-    // Same skewed shape as the HTML cloth: top edge along `across`, left edge down the pole.
-    const clothShadow = new Mesh(new PlaneGeometry(1, 1), clothShadowMaterial);
-    clothShadow.matrixAutoUpdate = false;
-    clothShadow.matrix.makeBasis(
-      across.clone().multiplyScalar(flag.width),
-      up.clone().multiplyScalar(clothHeight),
-      new Vector3().crossVectors(across, up).normalize(),
-    ).setPosition(
-      attach.clone()
-        .addScaledVector(across, flag.width / 2)
-        .addScaledVector(up, -clothHeight / 2),
+  // Each word is printed straight onto the dough: plain, bold lettering in a colour that
+  // stands out from the dough, white on the baked cookie and ink on the pale moon.
+  const prints: {
+    label: string;
+    canvas: HTMLCanvasElement;
+    texture: CanvasTexture;
+    material: MeshStandardMaterial;
+    hovered: boolean;
+  }[] = [];
+  const printEvents = new AbortController();
+  function paintPrint(print: (typeof prints)[number]) {
+    const { canvas, label } = print;
+    const { width, height } = canvas;
+    const context = canvas.getContext("2d")!;
+    context.clearRect(0, 0, width, height);
+    context.font = `700 ${height * 0.8}px ${getComputedStyle(face.querySelector("button")!).fontFamily}`;
+    context.letterSpacing = `${height * 0.02}px`;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    // Hovered or focused, it lights up like a link: a blue that stands out from the dough,
+    // deep on the pale moon and light on the baked cookie, with a soft glow around it.
+    const dark = document.documentElement.classList.contains("dark");
+    const link = dark ? "#2563b8" : "#3d8bff";
+    context.shadowColor = print.hovered ? link : "transparent";
+    context.shadowBlur = height * 0.12;
+    context.fillStyle = print.hovered ? link : dark ? "#1c293b" : "#fffaf0";
+    context.fillText(label, width / 2, height / 2);
+    context.shadowColor = "transparent";
+    print.material.emissiveIntensity = print.hovered ? 0.45 : 0.2;
+    print.texture.needsUpdate = true;
+  }
+  for (const [index, side] of flagSides.entries()) {
+    const button = side.element.querySelector<HTMLElement>("button")!;
+    const lettering = letterings[index];
+    const canvas = document.createElement("canvas");
+    // Drawn large and filtered at the steepest angles the GPU allows, so it stays sharp
+    // when the cookie turns and the lettering is seen side-on.
+    canvas.width = 2048;
+    canvas.height = Math.round((2048 * letteringSize.height) / letteringSize.width);
+    const texture = new CanvasTexture(canvas);
+    texture.colorSpace = SRGBColorSpace;
+    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const material = new MeshStandardMaterial({
+      map: texture,
+      emissive: "#ffffff",
+      emissiveMap: texture,
+      // A faint glow so the lighting never muddies the lettering.
+      emissiveIntensity: 0.2,
+      roughness: 0.8,
+      transparent: true,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -4,
+    });
+    // Project the word straight down onto the dough, so it follows every bump.
+    side.pivot.updateMatrixWorld(true);
+    const geometry = new DecalGeometry(
+      biscuit,
+      side.pivot.localToWorld(new Vector3(lettering.x, lettering.y, 0.36)),
+      new Euler().setFromQuaternion(side.pivot.getWorldQuaternion(new Quaternion())),
+      new Vector3(letteringSize.width, letteringSize.height, 0.6),
     );
-    for (const mesh of [pole, finial, clothShadow]) {
-      mesh.castShadow = true;
-      side.poles.add(mesh);
+    // The decal comes out in world space; keep it in the cookie's, so it turns with it.
+    geometry.applyMatrix4(cookie.matrixWorld.clone().invert());
+    const decal = new Mesh(geometry, material);
+    decal.receiveShadow = true;
+    cookie.add(decal);
+    const print = { label: button.textContent!.trim(), canvas, texture, material, hovered: false };
+    prints.push(print);
+    paintPrint(print);
+    // The button is invisible, so hovering or focusing it lights up the lettering instead.
+    const highlight = (on: boolean) => () => {
+      print.hovered = on;
+      paintPrint(print);
+      requestRender();
+    };
+    for (const [type, on] of [["pointerenter", true], ["pointerleave", false], ["focus", true], ["blur", false]] as const) {
+      button.addEventListener(type, highlight(on), { signal: printEvents.signal });
     }
   }
+  // Repaint once the display font has loaded, in case the first paint used a fallback.
+  document.fonts.ready.then(() => {
+    prints.forEach(paintPrint);
+    requestRender();
+  });
   type Destination = "home" | "writing" | "about";
   // Flying to Notes or About lands at eye level on the dough, where the reading panel
   // stands as a sign and a landmark stands beside it. x and y are on the cookie's face.
@@ -1695,15 +1721,7 @@ export function mountCookieMoon(host: HTMLElement) {
     // A distant sky follows camera translation, keeping its directions and size
     // stable while the cookie moves closer or the camera flies around it.
     stars.position.copy(camera.position);
-    // Poles and cloth shadows come and go with the HTML cloth they belong to.
     scene.updateMatrixWorld();
-    for (const { object, poles } of flagSides) {
-      const flagsVisible = destination === "home" && !flight && facesCamera(object);
-      if (poles.visible !== flagsVisible) {
-        poles.visible = flagsVisible;
-        renderer.shadowMap.needsUpdate = true;
-      }
-    }
     for (const surface of surfaces) {
       // Posts wait out of sight with their board, then spring up with it.
       const postsVisible = destination === surface.name && !leaving && signWaiting !== surface;
@@ -1823,6 +1841,7 @@ export function mountCookieMoon(host: HTMLElement) {
   function updateTheme() {
     const dark = document.documentElement.classList.contains("dark");
     setPalette(dark);
+    prints.forEach(paintPrint);
     ambient.intensity = dark ? 1.65 : 2.2;
     rim.intensity = dark ? 3.5 : 1.6;
     sunlight.intensity = dark ? 3.2 : 2.8;
@@ -2022,6 +2041,8 @@ export function mountCookieMoon(host: HTMLElement) {
     });
     sparkles.forEach((sparkle) => sparkle.material.dispose());
     sparkleTexture.dispose();
+    printEvents.abort();
+    prints.forEach((print) => print.texture.dispose());
     grainTexture.dispose();
     crumbTexture.dispose();
     chipFades.forEach((batch) => batch.texture.dispose());
