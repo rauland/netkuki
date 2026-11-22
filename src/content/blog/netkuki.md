@@ -2,7 +2,7 @@
 title: "Netkuki: a website on a cookie"
 description: Why “kuki” sounds like cookie, and how a name became a homepage you can fly around.
 pubDate: 2026-10-25
-updatedDate: 2026-11-04
+updatedDate: 2026-11-22
 tags:
   - Design
   - Astro
@@ -23,33 +23,21 @@ draft: false
   </div>
 </figure>
 
-The cookie turns slowly, and you can fly around it. Notes are on one side and About is on the other. Pick one and the camera takes you there.
+The cookie turns slowly: baked brown by day, and pale as a moon against the stars at night. “Notes” is printed on one side and “About” on the other. Pick one and the camera flies down to the surface, where a sign springs up out of the dough.
 
-## A cookie you can visit
+## HTML in a 3D scene
 
-The notes area is a notebook on the cookie’s surface, with links to posts. The back has a short intro to me and the things I work with. You can fly between the two, pull back to see the whole cookie, or just drag it around.
+Three.js draws the cookie, the chocolate chips, the lighting, and the camera. The signs are plain HTML, placed in the same scene with Three.js’s CSS3D renderer.
 
-The camera moves make it all feel like one place. Going to About takes you round to the other side of the same cookie, and opening a post zooms in on its link before the article loads.
+That matters on a site that’s mostly words. Links work like links, you can select the text, and everything takes keyboard focus. The camera flies around, but the browser is still rendering ordinary, crisp text.
 
-Articles are normal pages that you can read and scroll. Home, Notes, and About stay in the header if you’d rather skip the flying.
+There’s a catch: HTML always draws on top of the 3D canvas, so it can’t hide behind the cookie. A sign seen mid-flight would show straight through the dough. So each sign waits, out of sight, until you’ve landed in front of it. The words on the dough work the other way round. They’re painted into the 3D scene, where the cookie can hide them, with an invisible HTML button over each one so they’re still real links.
 
-## The writing is real text
+## Made from simple shapes
 
-Three.js draws the cookie, the chocolate chips, the lighting, and the camera. The buttons and writing on the surface are plain HTML, placed in the same 3D scene.
+There are no 3D model files. Everything is built in code from simple Three.js shapes. The chips are squashed spheres, and by day a donut and a macaron orbit the cookie. A server rack with blinking lights stands beside the Notes sign, and a rocket beside About.
 
-That’s important on a site that’s mostly words. Links work like links, you can select the text, and buttons take keyboard focus. The camera moves around, but the browser is still rendering ordinary text.
-
-It took some fiddling to get it looking right. Text on a moving surface can go soft, and a detailed cookie texture fights with the words. So the surface content renders larger than it needs to and gets scaled down into the scene. When you fly into a reading area, the fine texture softens and the nearby chips fade out. Fly back and it all returns.
-
-## Cookie by day, moon by night
-
-By day, it’s a baked brown cookie with dark chocolate chips. The back is a lighter golden brown so the About text stands out.
-
-At night, it turns pale like a moon, with a field of stars behind it.
-
-The floating buttons look like glass and brighten when you hover over them. They have to stay easy to spot and read while the cookie turns and the background changes.
-
-You can also pause the rotation, reset the view, or press Escape to fly back from a surface. If your device is set to reduce motion, the site follows that too.
+They do more than decorate. Open a note and you fly into the server rack. Head to About and the rocket blasts off, and you follow it up. A trail of boot prints also winds between the chips from one side to the other, a hint that there’s more round the back. If your device is set to reduce motion, the flights and animations are skipped.
 
 ## Something hidden in the chocolate
 
@@ -62,8 +50,6 @@ If you’re going to turn a cookie over, there should be something to find.
 
 ## Under the cookie
 
-Netkuki is an Astro site. Posts are written in Markdown, and the writing and profile pages are ordinary pages sitting next to the 3D homepage.
-
-I use it to share what I build and learn, and to keep experimenting. Some days that’s infrastructure for another project. Other days it’s making a chocolate chip turn a cookie rainbow.
+Netkuki is an Astro site, with posts written in Markdown. I use it to share what I build and learn, and to keep experimenting. Some days that’s infrastructure for another project. Other days it’s making a chocolate chip turn a cookie rainbow.
 
 You can [go play with the cookie](/), [read about the infrastructure project](/notes/iac/), or look through the [source on GitHub](https://github.com/rauland/netkuki).
