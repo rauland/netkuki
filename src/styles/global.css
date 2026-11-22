@@ -502,11 +502,6 @@ a:focus-visible {
   border-radius: 99px;
   background: #ffffff26;
 }
-:root:not(.dark) .cookie-surface-toolkit li {
-  border-color: #6b3f2080;
-  background: #fff0d6cc;
-  font-weight: 500;
-}
 .cookie-surface-posts {
   border-top: 2px solid #1c293b30;
   margin: 40px 0;
