@@ -208,6 +208,7 @@ a:focus-visible {
   display: none;
 }
 .cookie-surface-links button,
+.cookie-turn,
 .cookie-return,
 .cookie-controls button,
 .cookie-instructions {
@@ -238,7 +239,9 @@ a:focus-visible {
 }
 .cookie-surface-links button::before,
 .cookie-surface-links button::after,
+.cookie-turn::before,
 .cookie-return::before,
+.cookie-turn::after,
 .cookie-return::after,
 .cookie-controls button::before,
 .cookie-controls button::after,
@@ -251,6 +254,7 @@ a:focus-visible {
   background: linear-gradient(90deg, transparent, #ffffffb3, transparent);
 }
 .cookie-surface-links button::before,
+.cookie-turn::before,
 .cookie-return::before,
 .cookie-controls button::before,
 .cookie-instructions::before {
@@ -259,6 +263,7 @@ a:focus-visible {
   right: 56px;
 }
 .cookie-surface-links button::after,
+.cookie-turn::after,
 .cookie-return::after,
 .cookie-controls button::after,
 .cookie-instructions::after {
@@ -268,6 +273,7 @@ a:focus-visible {
   opacity: 0.55;
 }
 .cookie-surface-links button:is(:hover, :focus-visible),
+.cookie-turn:is(:hover, :focus-visible),
 .cookie-return:is(:hover, :focus-visible),
 .cookie-controls button:enabled:is(:hover, :focus-visible) {
   background-color: color-mix(in srgb, var(--accent-soft) 94%, transparent);
@@ -316,7 +322,6 @@ a:focus-visible {
 .cookie-flag[data-cookie-destination="about"] span {
   animation-delay: -1.7s;
 }
-/* This flag's page is round the back, so it says it will turn the cookie over. */
 /* The progress note that floats up from a found chip. */
 .cookie-pop {
   position: absolute;
@@ -361,12 +366,6 @@ a:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .cookie-pop { animation-name: cookie-pop-still; }
 }
-.cookie-flag-turn {
-  margin-left: 10px;
-  color: var(--accent);
-  font-size: 0.7em;
-  font-style: normal;
-}
 .cookie-flag:is(:hover, :focus-visible) span {
   color: var(--accent);
   box-shadow:
@@ -390,6 +389,7 @@ a:focus-visible {
   flex: none;
 }
 .cookie-flag:focus-visible,
+.cookie-turn:focus-visible,
 .cookie-return:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 4px;
@@ -398,6 +398,7 @@ a:focus-visible {
   outline-width: 4px;
   outline-offset: 8px;
 }
+.cookie-turn,
 .cookie-return,
 .cookie-controls button,
 .cookie-instructions {
@@ -407,6 +408,40 @@ a:focus-visible {
   border-width: 1px;
   box-shadow: inset 0 1px 0 #ffffff80, inset 0 -1px 0 #ffffff20, 0 8px 24px #00000026, 0 2px 5px #00000014;
 }
+/* Floats beside the cookie until the visitor has seen its back. */
+.cookie-turn {
+  --cookie-glass-height: 38px;
+  --cookie-glass-padding: 18px;
+  position: absolute;
+  top: 46%;
+  right: max(48px, calc((100% - 1240px) / 2));
+  z-index: 2;
+  gap: 10px;
+  animation:
+    cookie-turn-in 0.5s ease-out,
+    cookie-turn-bob 2.6s ease-in-out 0.5s infinite;
+}
+.cookie-turn-icon {
+  color: var(--accent);
+  font-size: 1.25em;
+  line-height: 1;
+}
+@keyframes cookie-turn-in {
+  from { opacity: 0; translate: 0 10px; }
+}
+@keyframes cookie-turn-bob {
+  50% { translate: 0 -6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cookie-turn { animation: none; }
+}
+@media (max-width: 560px) {
+  .cookie-turn {
+    top: auto;
+    right: 18px;
+    bottom: 76px;
+  }
+}
 .cookie-return {
   --cookie-glass-height: 38px;
   --cookie-glass-padding: 18px;
@@ -415,7 +450,9 @@ a:focus-visible {
   right: max(48px, calc((100% - 1240px) / 2));
   z-index: 2;
 }
+.cookie-turn::before,
 .cookie-return::before,
+.cookie-turn::after,
 .cookie-return::after,
 .cookie-controls button::before,
 .cookie-controls button::after,
@@ -423,6 +460,7 @@ a:focus-visible {
 .cookie-instructions::after {
   height: 1px;
 }
+.cookie-turn::before,
 .cookie-return::before,
 .cookie-controls button::before,
 .cookie-instructions::before {
@@ -430,17 +468,20 @@ a:focus-visible {
   left: 15%;
   right: 25%;
 }
+.cookie-turn::after,
 .cookie-return::after,
 .cookie-controls button::after,
 .cookie-instructions::after {
   bottom: 1px;
   right: 15%;
 }
+.cookie-turn:is(:hover, :focus-visible),
 .cookie-return:is(:hover, :focus-visible),
 .cookie-controls button:enabled:is(:hover, :focus-visible) {
   transform: translateY(-2px) scale(1.04);
   box-shadow: inset 0 1px 0 #ffffffb3, inset 0 -1px 0 #ffffff33, 0 12px 30px #00000040, 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), 0 0 20px color-mix(in srgb, var(--accent) 38%, transparent);
 }
+.cookie-turn[hidden],
 .cookie-return[hidden],
 .cookie-surface[hidden] {
   display: none;
@@ -448,10 +489,14 @@ a:focus-visible {
 .cookie-surface {
   /* Keep these dimensions at 2×; the 3D object scales them back down. */
   width: 840px;
-  max-height: 900px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  /* No scrolling: browsers miss clicks inside a scrolling area under a 3D transform,
+     so the sign shrinks to fit its whole text instead. */
   padding: 56px;
+  /* A signboard standing on the dough. */
+  border: 2px solid #ffffffb3;
+  border-radius: 36px;
+  background: linear-gradient(160deg, #ffffff, #e9eef5);
+  box-shadow: 0 40px 90px #00000047, inset 0 2px 0 #ffffff;
   color: #1c293b;
   backface-visibility: hidden;
   font: 32px / 1.65 var(--font-dm-sans);
@@ -582,6 +627,11 @@ a:focus-visible {
 .cookie-universe:not([data-destination="home"]) .cookie-canvas {
   cursor: default;
 }
+/* The sign steps aside so the exit happens through the landmark. */
+.cookie-universe[data-leaving] .cookie-surface {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
 .cookie-universe[data-leaving] .cookie-label,
 .cookie-universe[data-leaving] .cookie-return,
 .cookie-universe[data-leaving] .cookie-bottom-bar {
@@ -623,6 +673,19 @@ a:focus-visible {
   min-width: 36px;
   height: 36px;
   justify-content: center;
+}
+.cookie-controls button[hidden] {
+  display: none;
+}
+.cookie-controls svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+/* Pressed means paused, so it offers Play; otherwise it offers Pause. */
+.cookie-controls [aria-pressed="true"] .cookie-pause-icon,
+.cookie-controls [aria-pressed="false"] .cookie-play-icon {
+  display: none;
 }
 .theme-toggle:hover,
 .nav-contact:hover {

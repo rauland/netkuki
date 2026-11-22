@@ -7,6 +7,7 @@ const posts = (await getPublishedPosts()).slice(0, 2);
 
 <section class="cookie-universe" data-cookie-moon data-destination="home" aria-label="Cookie moon">
 	<p class="cookie-label"><span class="status-dot" aria-hidden="true"></span> THINGS I BUILD AND LEARN</p>
+	<button class="cookie-turn" type="button" data-cookie-turn hidden aria-label="Turn the cookie over to find About">Turn me over <span class="cookie-turn-icon" aria-hidden="true">↻</span></button>
 	<button class="cookie-return" type="button" data-cookie-destination="home" hidden>← Fly back to the cookie</button>
 	<div class="cookie-viewport" data-cookie-viewport>
 		<canvas class="cookie-canvas" tabindex="0" aria-label="Interactive 3D chocolate-chip cookie" aria-describedby="cookie-instructions">
@@ -14,7 +15,6 @@ const posts = (await getPublishedPosts()).slice(0, 2);
 		</canvas>
 		<nav class="cookie-face" data-cookie-face aria-label="Explore Netkuki" hidden>
 			<button class="cookie-flag" type="button" data-cookie-destination="writing"><span>Notes</span></button>
-			<button class="cookie-flag" type="button" data-cookie-destination="about"><span>About<i class="cookie-flag-turn" aria-hidden="true">↻</i></span></button>
 		</nav>
 		<nav class="cookie-face" data-cookie-face-back aria-label="The other side of the cookie" hidden>
 			<button class="cookie-flag" type="button" data-cookie-destination="about"><span>About</span></button>
@@ -25,7 +25,7 @@ const posts = (await getPublishedPosts()).slice(0, 2);
 			<p>Things built, lessons learned, and ideas still taking shape.</p>
 			<div class="cookie-surface-posts">
 				{posts.map((post) => (
-					<a href={`/notes/${post.id}/`} data-cookie-exit="zoom">
+					<a href={`/notes/${post.id}/`} data-cookie-exit>
 						<span>{formatDate(post.data.pubDate)}</span>
 						<strong>{post.data.title}{"\u00a0"}<span class="link-arrow" aria-hidden="true">→</span></strong>
 					</a>
@@ -55,13 +55,14 @@ const posts = (await getPublishedPosts()).slice(0, 2);
 	<div class="cookie-bottom-bar">
 		<p id="cookie-instructions" class="cookie-instructions">
 			<span data-cookie-hint>Pick a place to fly to <span aria-hidden="true">·</span> Drag to explore</span>
-			<span class="visually-hidden">. Use arrow keys to turn, plus or minus to zoom, R to reset, and Escape to fly back.</span>
+			<span class="visually-hidden">. About is on the back of the cookie. Use arrow keys to turn, plus or minus to zoom, R to reset, and Escape to fly back.</span>
 		</p>
 		<div class="cookie-controls" aria-label="Cookie view controls">
-			<button type="button" data-cookie-action="zoom-in" aria-label="Zoom in" title="Zoom in" disabled>+</button>
-			<button type="button" data-cookie-action="zoom-out" aria-label="Zoom out" title="Zoom out" disabled>−</button>
-			<button type="button" data-cookie-action="motion" aria-label="Pause rotation" aria-pressed="false" disabled>Pause</button>
-			<button type="button" data-cookie-action="reset" aria-label="Reset cookie view" disabled>Reset</button>
+			<button type="button" data-cookie-action="reset" aria-label="Reset cookie view" hidden disabled>Reset</button>
+			<button type="button" data-cookie-action="motion" aria-label="Pause rotation" title="Pause rotation" aria-pressed="false" disabled>
+				<svg class="cookie-pause-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="3" width="3" height="10" rx="1" /><rect x="9.5" y="3" width="3" height="10" rx="1" /></svg>
+				<svg class="cookie-play-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6a.8.8 0 0 0 1.2.7l7.6-4.8a.8.8 0 0 0 0-1.4L6.2 2.5A.8.8 0 0 0 5 3.2Z" /></svg>
+			</button>
 		</div>
 	</div>
 	<noscript><p class="cookie-no-script">Enable JavaScript to explore the cookie in 3D. You can still visit <a href="/notes/">Notes</a> and <a href="/about/">About</a>.</p></noscript>

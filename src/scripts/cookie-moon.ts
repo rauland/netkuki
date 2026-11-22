@@ -1,10 +1,12 @@
 import {
   ACESFilmicToneMapping,
   AdditiveBlending,
+  BoxGeometry,
   BufferGeometry,
   CanvasTexture,
   CapsuleGeometry,
   Color,
+  ConeGeometry,
   CylinderGeometry,
   DataTexture,
   DirectionalLight,
@@ -26,6 +28,7 @@ import {
   PerspectiveCamera,
   PlaneGeometry,
   Points,
+  PointLight,
   PointsMaterial,
   Quaternion,
   Raycaster,
@@ -405,6 +408,111 @@ function makeCookie() {
 
 const sprinkleColors = ["#f58ab8", "#6fbcef", "#ffc94d", "#9b87f5", "#ffffff"];
 
+/** A tiny server rack beside the Notes sign, its lights blinking in three rhythms. */
+function makeServerRack() {
+  const rack = new Group();
+  const metal = new MeshStandardMaterial({ color: "#2b313b", metalness: 0.6, roughness: 0.45 });
+  const trim = new MeshStandardMaterial({ color: "#4a5361", metalness: 0.6, roughness: 0.4 });
+  const lights = ["#3dff8a", "#3dff8a", "#5aa8ff"].map((emissive) =>
+    new MeshStandardMaterial({ color: "#0b1410", emissive, emissiveIntensity: 1.6 }));
+  const body = new Mesh(new BoxGeometry(0.17, 0.3, 0.13), metal);
+  body.position.y = 0.15;
+  rack.add(body);
+  const unitGeometry = new BoxGeometry(0.15, 0.05, 0.006);
+  const lightGeometry = new BoxGeometry(0.012, 0.012, 0.006);
+  for (let shelf = 0; shelf < 4; shelf++) {
+    const y = 0.06 + shelf * 0.064;
+    const unit = new Mesh(unitGeometry, trim);
+    unit.position.set(0, y, 0.066);
+    rack.add(unit);
+    for (let led = 0; led < 3; led++) {
+      const light = new Mesh(lightGeometry, lights[(shelf + led) % 3]);
+      light.position.set(0.03 + led * 0.02, y, 0.07);
+      rack.add(light);
+    }
+  }
+  rack.traverse((object) => {
+    if (object instanceof Mesh) object.castShadow = object.receiveShadow = true;
+  });
+  rack.scale.setScalar(0.8);
+  function update(time: number) {
+    lights.forEach((light, index) => {
+      light.emissiveIntensity = Math.sin(time / (170 + index * 110) + index * 2) > -0.3 ? 1.6 : 0.15;
+    });
+  }
+  /** As the visitor flies in, the lights race and flare brighter. */
+  function exit(progress: number, time: number) {
+    lights.forEach((light, index) => {
+      light.emissiveIntensity = (Math.sin(time / 40 + index * 2) > 0 ? 2 : 0.6) + progress * 4;
+    });
+  }
+  return { group: rack, update, exit, reset: () => {} };
+}
+
+/** A little rocket beside the About sign, like the one on the Fly buttons. */
+function makeRocket() {
+  const rocket = new Group();
+  const hull = new MeshStandardMaterial({ color: "#eef1f6", metalness: 0.3, roughness: 0.35 });
+  const accent = new MeshStandardMaterial({ color: "#2563b8", metalness: 0.2, roughness: 0.4 });
+  const dark = new MeshStandardMaterial({ color: "#2b313b", metalness: 0.6, roughness: 0.45 });
+  const glass = new MeshStandardMaterial({ color: "#9cc8ff", emissive: "#3b7bd6", emissiveIntensity: 0.6, roughness: 0.15 });
+  const body = new Mesh(new CylinderGeometry(0.045, 0.05, 0.22, 24), hull);
+  body.position.y = 0.16;
+  const nose = new Mesh(new ConeGeometry(0.045, 0.1, 24), accent);
+  nose.position.y = 0.32;
+  const nozzle = new Mesh(new CylinderGeometry(0.03, 0.038, 0.04, 20), dark);
+  nozzle.position.y = 0.04;
+  const porthole = new Mesh(new CylinderGeometry(0.018, 0.018, 0.012, 20), glass);
+  porthole.rotation.x = Math.PI / 2;
+  porthole.position.set(0, 0.2, 0.046);
+  rocket.add(body, nose, nozzle, porthole);
+  const finGeometry = new BoxGeometry(0.006, 0.09, 0.05);
+  for (let fin = 0; fin < 3; fin++) {
+    const angle = (fin / 3) * Math.PI * 2 + Math.PI / 3;
+    const mesh = new Mesh(finGeometry, accent);
+    mesh.position.set(Math.sin(angle) * 0.06, 0.08, Math.cos(angle) * 0.06);
+    mesh.rotation.y = angle;
+    rocket.add(mesh);
+  }
+  rocket.traverse((object) => {
+    if (object instanceof Mesh) object.castShadow = object.receiveShadow = true;
+  });
+  // The engine only lights for a launch.
+  const flame = new Group();
+  const outer = new Mesh(
+    new ConeGeometry(0.045, 0.24, 16),
+    new MeshBasicMaterial({ color: "#ff9d3c", transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false }),
+  );
+  const inner = new Mesh(
+    new ConeGeometry(0.022, 0.13, 12),
+    new MeshBasicMaterial({ color: "#fff3cf", toneMapped: false }),
+  );
+  // The group is flipped below, so these offsets push the cones down out of the nozzle.
+  outer.position.y = 0.12;
+  inner.position.y = 0.065;
+  flame.add(outer, inner);
+  flame.rotation.x = Math.PI;
+  flame.position.y = 0.02;
+  flame.visible = false;
+  rocket.add(flame);
+  // An orange glow from the engine lights the dough and the smoke. It always exists,
+  // at zero when unlit, so turning it on never makes the scene recompile its shaders.
+  const glow = new PointLight("#ff8a3d", 0, 1.4, 2);
+  glow.position.y = -0.04;
+  rocket.add(glow);
+  function exit(progress: number, time: number) {
+    flame.visible = true;
+    const flicker = Math.sin(time / 23) * 0.5 + Math.sin(time / 9) * 0.5;
+    flame.scale.set(1 + flicker * 0.08, 0.8 + Math.min(progress * 3, 1) * 0.6 + flicker * 0.2, 1 + flicker * 0.08);
+    glow.intensity = 2.5 + flicker * 0.8;
+  }
+  function reset() {
+    flame.visible = false;
+    glow.intensity = 0;
+  }
+  return { group: rocket, update: (_time: number) => {}, exit, reset };
+}
+
 /** A frosted donut planet, tilted so its icing and hole catch the light. */
 function makeDonut(random: () => number) {
   const donut = new Group();
@@ -545,6 +653,7 @@ export function mountCookieMoon(host: HTMLElement) {
   const face = host.querySelector<HTMLElement>("[data-cookie-face]")!;
   const backFace = host.querySelector<HTMLElement>("[data-cookie-face-back]")!;
   const returnButton = host.querySelector<HTMLButtonElement>(".cookie-return")!;
+  const turnButton = host.querySelector<HTMLButtonElement>("[data-cookie-turn]")!;
   const announcement = host.querySelector<HTMLElement>("[data-cookie-announcement]")!;
   const hint = host.querySelector<HTMLElement>("[data-cookie-hint]")!;
   const bottomBar = host.querySelector<HTMLElement>(".cookie-bottom-bar")!;
@@ -552,6 +661,7 @@ export function mountCookieMoon(host: HTMLElement) {
   const buttons = host.querySelectorAll<HTMLButtonElement>(
     "[data-cookie-action]",
   );
+  const resetButton = host.querySelector<HTMLButtonElement>('[data-cookie-action="reset"]')!;
   const motionButton = host.querySelector<HTMLButtonElement>(
     '[data-cookie-action="motion"]',
   )!;
@@ -677,7 +787,6 @@ export function mountCookieMoon(host: HTMLElement) {
     // feet are placed on bare dough, clear of the chips. swing turns the cloth about its
     // pole toward the default camera, since the cookie's resting yaw foreshortens the left side.
     { name: "writing", side: 0, x: -0.92, top: 0.86, base: -0.12, lean: 0.17, swing: 0.1, width: 0.94 },
-    { name: "about", side: 0, x: 0.56, top: 0.44, base: -0.28, lean: -0.12, swing: 0, width: 1.08 },
     { name: "about", side: 1, x: -0.33, top: 0.55, base: -0.25, lean: 0.1, swing: 0, width: 0.94 },
   ] as const;
   // Cloths catch the same breeze, so they take only a little of their pole's lean.
@@ -757,18 +866,136 @@ export function mountCookieMoon(host: HTMLElement) {
     }
   }
   type Destination = "home" | "writing" | "about";
+  // Flying to Notes or About lands at eye level on the dough, where the reading panel
+  // stands as a sign and a landmark stands beside it. x and y are on the cookie's face.
+  const landings = {
+    writing: { side: 1, sign: { x: -0.55, y: 0.2 }, landmark: { x: 0.05, y: 0.65 }, model: makeServerRack() },
+    about: { side: -1, sign: { x: 0.5, y: 0.25 }, landmark: { x: -0.2, y: 0.65 }, model: makeRocket() },
+  };
+  // How far from the sign the camera lands; the sign is scaled to fill the view from here.
+  const landingDistance = 1;
+  const signGap = 0.05;
+  cookie.updateMatrixWorld(true);
+  const dough = cookie.children.find((child) => child instanceof Mesh && !(child instanceof InstancedMesh))!;
+  const doughRay = new Raycaster();
+  /** The point on the dough's surface at x, y on one face, in the cookie's own space. */
+  function doughPoint(x: number, y: number, side: number) {
+    doughRay.set(
+      cookie.localToWorld(new Vector3(x, y, side * 2)),
+      new Vector3(0, 0, -side).transformDirection(cookie.matrixWorld),
+    );
+    const hit = doughRay.intersectObject(dough, false)[0];
+    return hit ? cookie.worldToLocal(hit.point.clone()) : new Vector3(x, y, side * 0.3);
+  }
+  /** Standing upright on one face, turned towards a visitor arriving from below. */
+  function standing(side: number) {
+    const up = new Vector3(0, 0, side);
+    const facing = new Vector3(0, -1, 0);
+    const right = new Vector3().crossVectors(up, facing);
+    return { up, facing, right, rotation: new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(right, up, facing)) };
+  }
   const surfaces = (["writing", "about"] as const).map((name) => {
     const element = host.querySelector<HTMLElement>(`[data-cookie-surface="${name}"]`)!;
     const object = new CSS3DObject(element);
-    const back = name === "about";
-    const side = back ? -1 : 1;
-    object.position.set(-surfaceOffset(side), surfaceOffset(side), side * 0.58);
-    object.rotation.y = back ? Math.PI : 0;
-    // Surface styles render at 2× size, then scale down for crisper 3D text.
+    const landing = landings[name];
+    const basis = standing(landing.side);
+    const base = doughPoint(landing.sign.x, landing.sign.y, landing.side);
+    object.quaternion.copy(basis.rotation);
+    object.position.copy(base);
+    // Surface styles render at 2× size; standSign scales them to the view.
     object.scale.setScalar(0.0021);
     cookie.add(object);
-    return { name, element, object };
+    const posts = [-1, 1].map(() => {
+      const post = new Mesh(new CylinderGeometry(0.012, 0.014, 1, 12), poleMaterial);
+      post.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), basis.up);
+      post.castShadow = true;
+      post.visible = false;
+      cookie.add(post);
+      return post;
+    });
+    const model = landing.model.group;
+    model.position.copy(doughPoint(landing.landmark.x, landing.landmark.y, landing.side)).addScaledVector(basis.up, -0.01);
+    model.quaternion.copy(basis.rotation);
+    cookie.add(model);
+    return { name, element, object, base, basis, posts, width: 0, height: 0, model: landing.model, modelBase: model.position.clone(), update: landing.model.update };
   });
+  const launchSite = surfaces.find((surface) => surface.name === "about")!;
+  const smokeMaterial = new MeshStandardMaterial({ color: "#e4e6eb", roughness: 1, transparent: true, opacity: 0.85, depthWrite: false });
+  const smoke = new InstancedMesh(new IcosahedronGeometry(1, 1), smokeMaterial, 140);
+  smoke.frustumCulled = false;
+  cookie.add(smoke);
+  const puffs = Array.from({ length: smoke.count }, () => ({ born: -Infinity, position: new Vector3(), drift: new Vector3(), size: 0 }));
+  let nextPuff = 0;
+  let lastPuff = 0;
+  const puffMatrix = new Matrix4();
+  const puffPosition = new Vector3();
+  const puffScale = new Vector3();
+  const puffTurn = new Quaternion();
+  /** Puff smoke from the nozzle while spawning, and age every puff: they swell, drift and thin away. */
+  function updateSmoke(time: number, spawning: boolean) {
+    const { basis, model, modelBase } = launchSite;
+    // Spawn by elapsed time, not per frame, so a slow device still gets a thick cloud.
+    const due = spawning ? Math.min(6, Math.floor((time - lastPuff) / 14)) : 0;
+    if (due > 0) lastPuff = time;
+    for (let spawned = 0; spawned < due; spawned++) {
+      const puff = puffs[nextPuff];
+      nextPuff = (nextPuff + 1) % puffs.length;
+      // Near the pad the smoke rolls out across the dough; higher up it trails behind.
+      const onPad = model.group.position.distanceTo(modelBase) < 0.2;
+      const angle = Math.random() * Math.PI * 2;
+      puff.born = time;
+      puff.position.copy(model.group.position).addScaledVector(basis.up, 0.02);
+      puff.drift.copy(basis.right).multiplyScalar(Math.cos(angle))
+        .addScaledVector(basis.facing, Math.sin(angle))
+        .multiplyScalar(onPad ? 0.2 + Math.random() * 0.35 : 0.06)
+        .addScaledVector(basis.up, onPad ? 0.03 + Math.random() * 0.06 : -0.1);
+      puff.size = (onPad ? 0.06 : 0.04) * (0.7 + Math.random() * 0.6);
+    }
+    for (const [index, puff] of puffs.entries()) {
+      const age = (time - puff.born) / 1700;
+      const alive = age >= 0 && age < 1;
+      puffPosition.copy(puff.position).addScaledVector(puff.drift, alive ? 1 - (1 - age) ** 2 : 0);
+      puffScale.setScalar(alive ? puff.size * (0.5 + 3 * age) * (1 - age ** 4) : 0);
+      smoke.setMatrixAt(index, puffMatrix.compose(puffPosition, puffTurn, puffScale));
+    }
+    smoke.instanceMatrix.needsUpdate = true;
+  }
+  // Instances start as full-size spheres in the cookie's middle; shrink them away until a launch.
+  updateSmoke(0, false);
+  /** Size the sign and stand it on its posts, its foot just above the dough. */
+  const signTilt = new Quaternion();
+  const signUp = new Vector3();
+  const signHinge = new Vector3(1, 0, 0);
+  const postAxis = new Vector3(0, 1, 0);
+  /**
+   * Tip the whole sign, board and posts, about its foot: 0 stands it upright, -π/2 lays it
+   * on its back on the dough, and a little past 0 leans it towards the visitor.
+   */
+  function poseSign(surface: (typeof surfaces)[number], lean: number) {
+    signUp.copy(surface.basis.up).multiplyScalar(Math.cos(lean)).addScaledVector(surface.basis.facing, Math.sin(lean));
+    surface.object.quaternion.copy(surface.basis.rotation).multiply(signTilt.setFromAxisAngle(signHinge, lean));
+    surface.object.position.copy(surface.base)
+      .addScaledVector(surface.basis.up, signGap)
+      .addScaledVector(signUp, surface.height / 2);
+    // Posts run from just under the dough to the middle of the board, behind it.
+    const length = signGap + surface.height / 2 + 0.03;
+    surface.posts.forEach((post, index) => {
+      post.scale.set(1, length, 1);
+      post.quaternion.setFromUnitVectors(postAxis, signUp);
+      post.position.copy(surface.base)
+        .addScaledVector(surface.basis.right, (index ? 1 : -1) * surface.width * 0.3)
+        .addScaledVector(signUp, length / 2 - 0.03);
+    });
+    renderer.shadowMap.needsUpdate = true;
+  }
+  function standSign(surface: (typeof surfaces)[number], scale: number) {
+    const width = surface.element.offsetWidth * scale;
+    const height = surface.element.offsetHeight * scale;
+    surface.object.scale.setScalar(scale);
+    surface.width = width;
+    surface.height = height;
+    poseSign(surface, 0);
+  }
   const facePosition = new Vector3();
   const faceNormal = new Vector3();
   const faceToCamera = new Vector3();
@@ -859,9 +1086,13 @@ export function mountCookieMoon(host: HTMLElement) {
     toPosition: Vector3;
     fromTarget: Vector3;
     toTarget: Vector3;
-    mode: "zoom" | "out";
-    fromChips: number[];
+    // Notes links fly into the server rack; About's link launches the rocket.
+    mode: "server" | "rocket";
+    surface: (typeof surfaces)[number];
+    up: Vector3;
   } | null = null;
+  const leavingPoint = new Vector3();
+  const leavingShake = new Vector3();
   let exitTimer: number | undefined;
   let rainbowStart: number | null = null;
   let rainbowTimer: number | undefined;
@@ -879,22 +1110,25 @@ export function mountCookieMoon(host: HTMLElement) {
     fromUp: Vector3;
     toUp: Vector3;
     arc: Quaternion;
-    sideOrbit: {
-      center: Vector3;
-      axis: Vector3;
-      fromDirection: Vector3;
-      angle: number;
-      fromRadius: number;
-      toRadius: number;
-      fromHeight: number;
-      toHeight: number;
-    } | null;
     fromCookie: Quaternion;
     toCookie: Quaternion;
     fromChips: number[];
     toChips: number[];
   } | null = null;
   const flightRotation = new Quaternion();
+  // Going from one side to the other lifts off to the whole cookie first, then lands.
+  let queuedDestination: Destination | null = null;
+  // On landing the sign lies flat until the camera is nearly down, then springs upright.
+  let signWaiting: (typeof surfaces)[number] | null = null;
+  let signSpring: { surface: (typeof surfaces)[number]; start: number } | null = null;
+  // A nudge to turn the cookie over, shown until the visitor has seen About's flag.
+  let backSeen = false;
+  try {
+    backSeen = sessionStorage.getItem("netkuki-back-seen") === "true";
+  } catch {}
+  let turnTimer: number | undefined;
+  let turning: { start: number; from: number } | null = null;
+  let skipping = false;
   const flightDirection = new Vector3();
 
   function requestRender() {
@@ -918,10 +1152,54 @@ export function mountCookieMoon(host: HTMLElement) {
     cancelExit();
     flyTo(next);
   }
+  function hideTurnHint() {
+    window.clearTimeout(turnTimer);
+    turnButton.hidden = true;
+  }
+  /** Offer the turn after a short look around, unless the back has already been found. */
+  function scheduleTurnHint(delay = 6000) {
+    hideTurnHint();
+    if (backSeen) return;
+    turnTimer = window.setTimeout(() => {
+      if (destination === "home" && !flight && !leaving && !turning && !backSeen) turnButton.hidden = false;
+    }, delay);
+  }
+  function markBackSeen() {
+    if (backSeen) return;
+    backSeen = true;
+    hideTurnHint();
+    try {
+      sessionStorage.setItem("netkuki-back-seen", "true");
+    } catch {}
+  }
+  /** Spin the cookie half a turn so its back, and About's flag, face the visitor. */
+  function turnOver() {
+    hideTurnHint();
+    finishEntrance();
+    paused = true;
+    updateMotion();
+    turning = { start: performance.now(), from: cookie.rotation.y };
+    showReset();
+    announcement.textContent = "Turning the cookie over.";
+    requestRender();
+  }
+  function updateTurning(time: number) {
+    if (!turning) return;
+    const progress = reducedMotion.matches ? 1 : Math.max(0, Math.min((time - turning.start) / 1200, 1));
+    cookie.rotation.y = turning.from + Math.PI * progress * progress * (3 - 2 * progress);
+    renderer.shadowMap.needsUpdate = true;
+    requestRender();
+    if (progress < 1) return;
+    turning = null;
+    renderScene();
+    backFace.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
+    announcement.textContent = "The other side of the cookie. About is here.";
+  }
   function skipFlight() {
     if (!flight || flight.duration === 0) return;
     // The next frame then sees a finished flight and lands the normal way.
     flight.start = -Infinity;
+    skipping = true;
     requestRender();
   }
   function onFlightKey(event: KeyboardEvent) {
@@ -1120,11 +1398,9 @@ export function mountCookieMoon(host: HTMLElement) {
   function updateMotion() {
     host.dataset.motion = orbitPaused ? "paused" : "playing";
     controls.autoRotate = !paused && !faceHovered && !faceFocused && destination === "home" && !flight && !leaving && !entrance;
-    motionButton.textContent = paused ? "Play" : "Pause";
-    motionButton.setAttribute(
-      "aria-label",
-      paused ? "Start rotation" : "Pause rotation",
-    );
+    const motionLabel = paused ? "Start rotation" : "Pause rotation";
+    motionButton.setAttribute("aria-label", motionLabel);
+    motionButton.title = motionLabel;
     motionButton.setAttribute("aria-pressed", String(paused));
   }
   function resize() {
@@ -1162,6 +1438,10 @@ export function mountCookieMoon(host: HTMLElement) {
     ).add(controls.target);
     controls.update(0);
   }
+  /** Offer Reset once the visitor has turned or zoomed the view away from its start. */
+  function showReset() {
+    if (destination === "home" && !flight) resetButton.hidden = false;
+  }
   function reset() {
     travelTo("home");
   }
@@ -1176,13 +1456,21 @@ export function mountCookieMoon(host: HTMLElement) {
   }
   function finishFlight() {
     flight = null;
+    const skipped = skipping;
+    skipping = false;
+    if (queuedDestination) {
+      const next = queuedDestination;
+      queuedDestination = null;
+      flyTo(next, skipped);
+      return;
+    }
     delete host.dataset.traveling;
     hint.textContent = restingHint();
     controls.enabled = destination === "home";
     controls.enableDamping = true;
     updateMotion();
     announcement.textContent = destination === "home"
-      ? "Back at the whole cookie. Choose Notes or About to explore."
+      ? "Back at the whole cookie. Choose Notes, or turn the cookie over to find About."
       : `${destination === "writing" ? "Notes" : "About"}. You have arrived on the cookie’s surface. Press Escape to fly back.`;
     // Render visibility before moving keyboard focus into the destination.
     renderScene();
@@ -1190,10 +1478,21 @@ export function mountCookieMoon(host: HTMLElement) {
       ? face.querySelector<HTMLButtonElement>("button")
       : surfaces.find((surface) => surface.name === destination)?.element.querySelector<HTMLElement>("h2");
     focusTarget?.focus({ preventScroll: true });
+    if (destination === "home") scheduleTurnHint();
     requestRender();
   }
   function flyTo(next: Destination, immediate = false) {
     const changingSides = destination !== "home" && next !== "home" && destination !== next;
+    const liftingOff = changingSides && !immediate && !reducedMotion.matches;
+    queuedDestination = liftingOff ? next : null;
+    signWaiting = null;
+    signSpring = null;
+    hideTurnHint();
+    resetButton.hidden = true;
+    turning = null;
+    skipping = false;
+    const arrival = next;
+    if (liftingOff) next = "home";
     finishEntrance();
     faceHovered = false;
     faceFocused = false;
@@ -1206,7 +1505,7 @@ export function mountCookieMoon(host: HTMLElement) {
     destination = next;
     host.dataset.destination = next;
     host.dataset.traveling = "true";
-    announcement.textContent = next === "home" ? "Flying back to the whole cookie." : `Flying to ${next === "writing" ? "Notes" : "About"}.`;
+    announcement.textContent = arrival === "home" ? "Flying back to the whole cookie." : `Flying to ${arrival === "writing" ? "Notes" : "About"}.`;
     returnButton.hidden = next === "home";
     hint.textContent = "Flying · Click or tap to land";
     buttons.forEach((button) => {
@@ -1219,9 +1518,6 @@ export function mountCookieMoon(host: HTMLElement) {
       const surface = surfaces.find((entry) => entry.name === next)!;
       surface.element.hidden = false;
       surface.element.style.display = "";
-      surface.object.getWorldPosition(toTarget);
-      const normal = new Vector3(0, 0, 1).transformDirection(surface.object.matrixWorld);
-      toUp.set(0, 1, 0).transformDirection(surface.object.matrixWorld);
       const tanFov = Math.tan((camera.fov * Math.PI) / 360);
       // Keep the reading panel between the floating return button and hint,
       // while the cookie itself still fills the entire canvas behind them.
@@ -1229,42 +1525,26 @@ export function mountCookieMoon(host: HTMLElement) {
       const top = Math.max(12, returnButton.getBoundingClientRect().bottom - bounds.top + 12);
       const bottom = Math.min(bounds.height - 12, bottomBar.getBoundingClientRect().top - bounds.top - 12);
       const availableHeight = Math.max(1, bottom - top);
-      surface.element.style.maxHeight = "";
-      const style = getComputedStyle(surface.element);
-      const naturalMaxHeight = parseFloat(style.maxHeight);
-      const minimumScale = Math.min(bounds.width * 0.8 / surface.element.offsetWidth, 14 / parseFloat(style.fontSize));
-      // On shorter screens, scroll the panel rather than shrinking its text indefinitely.
-      surface.element.style.maxHeight = `${Math.min(naturalMaxHeight, availableHeight / minimumScale)}px`;
-      const width = surface.element.offsetWidth * surface.object.scale.x;
-      const height = surface.element.offsetHeight * surface.object.scale.y;
-      const distance = Math.max(height / (2 * tanFov * (availableHeight / bounds.height)), width / (2 * tanFov * camera.aspect * 0.8), 2.5);
+      // Fill the view from a fixed distance, so the camera always lands at eye level.
+      standSign(surface, Math.min(
+        (2 * tanFov * landingDistance * (availableHeight / bounds.height)) / surface.element.offsetHeight,
+        (2 * tanFov * landingDistance * camera.aspect * 0.8) / surface.element.offsetWidth,
+      ));
+      surface.object.getWorldPosition(toTarget);
+      const normal = new Vector3(0, 0, 1).transformDirection(surface.object.matrixWorld);
+      toUp.set(0, 1, 0).transformDirection(surface.object.matrixWorld);
       const centerOffset = (top + availableHeight / 2) / bounds.height - 0.5;
-      toTarget.addScaledVector(toUp, centerOffset * 2 * tanFov * distance);
-      toPosition.copy(toTarget).addScaledVector(normal, distance);
-    }
-    let sideOrbit = null;
-    if (changingSides) {
-      // Opposite faces need a side-on orbit, not the shortest arc over a pole.
-      // Keeping the cookie's up axis fixed also prevents lookAt from rolling.
-      const center = cookie.getWorldPosition(new Vector3());
-      const axis = new Vector3(0, 1, 0).applyQuaternion(cookie.quaternion).normalize();
-      const fromRadial = camera.position.clone().sub(center);
-      const toRadial = toPosition.clone().sub(center);
-      const fromHeight = fromRadial.dot(axis);
-      const toHeight = toRadial.dot(axis);
-      fromRadial.addScaledVector(axis, -fromHeight);
-      toRadial.addScaledVector(axis, -toHeight);
-      const fromRadius = fromRadial.length();
-      const toRadius = toRadial.length();
-      fromRadial.normalize();
-      toRadial.normalize();
-      let angle = Math.atan2(axis.dot(new Vector3().crossVectors(fromRadial, toRadial)), fromRadial.dot(toRadial));
-      if (Math.abs(Math.abs(angle) - Math.PI) < 0.001) angle = next === "about" ? Math.PI : -Math.PI;
-      sideOrbit = { center, axis, fromDirection: fromRadial, angle, fromRadius, toRadius, fromHeight, toHeight };
+      toTarget.addScaledVector(toUp, centerOffset * 2 * tanFov * landingDistance);
+      toPosition.copy(toTarget).addScaledVector(normal, landingDistance);
+      if (!immediate && !reducedMotion.matches) {
+        poseSign(surface, -Math.PI / 2);
+        signWaiting = surface;
+      }
     }
     flight = {
       start: performance.now(),
-      duration: immediate || reducedMotion.matches ? 0 : 1700,
+      // A lift-off is the first half of a longer trip, so it moves quicker.
+      duration: immediate || reducedMotion.matches ? 0 : liftingOff ? 1100 : 1700,
       fromPosition: camera.position.clone(),
       toPosition,
       fromTarget: controls.target.clone(),
@@ -1272,11 +1552,11 @@ export function mountCookieMoon(host: HTMLElement) {
       fromUp: camera.up.clone(),
       toUp,
       arc: new Quaternion().setFromUnitVectors(camera.position.clone().normalize(), toPosition.clone().normalize()),
-      sideOrbit,
       fromCookie: cookie.quaternion.clone(),
       toCookie: next === "home" ? homeRotation.clone() : cookie.quaternion.clone(),
       fromChips: chipFades.map((batch) => batch.opacity),
-      toChips: chipFades.map((batch) => batch.name === next ? 0 : 1),
+      // The text stands on a sign now, so no chips need clearing out of the way.
+      toChips: chipFades.map(() => 1),
     };
     updateMotion();
     if (flight.duration === 0) {
@@ -1302,10 +1582,14 @@ export function mountCookieMoon(host: HTMLElement) {
       const url = new URL(link.href);
       if (url.origin !== window.location.origin) return;
       event.preventDefault();
-      if (!leaving) exitTo(url.href, link);
+      if (!leaving) exitTo(url.href);
       return;
     }
     if (leaving) return;
+    if ((event.target as Element).closest("[data-cookie-turn]")) {
+      turnOver();
+      return;
+    }
     const travelButton = (event.target as Element).closest<HTMLButtonElement>("[data-cookie-destination]");
     if (travelButton) {
       const next = travelButton.dataset.cookieDestination;
@@ -1316,12 +1600,6 @@ export function mountCookieMoon(host: HTMLElement) {
       "[data-cookie-action]",
     );
     switch (button?.dataset.cookieAction) {
-      case "zoom-in":
-        zoom(0.88);
-        break;
-      case "zoom-out":
-        zoom(1.14);
-        break;
       case "motion":
         paused = !paused;
         orbitPaused = paused;
@@ -1347,6 +1625,7 @@ export function mountCookieMoon(host: HTMLElement) {
       updateMotion();
       cookie.rotation.x += turns[event.key][0];
       cookie.rotation.y += turns[event.key][1];
+      showReset();
       renderer.shadowMap.needsUpdate = true;
       requestRender();
     } else if (["+", "=", "-", "r", "R", " "].includes(event.key)) {
@@ -1356,13 +1635,19 @@ export function mountCookieMoon(host: HTMLElement) {
         paused = !paused;
         orbitPaused = paused;
         updateMotion();
-      } else zoom(event.key === "-" ? 1.14 : 0.88);
+      } else {
+        zoom(event.key === "-" ? 1.14 : 0.88);
+        showReset();
+      }
     }
   }
   function onStart() {
     finishEntrance();
     paused = true;
     updateMotion();
+    // They're exploring; offer the turn again later if they don't find the back.
+    scheduleTurnHint(9000);
+    showReset();
   }
   function onFacePointerEnter() {
     faceHovered = true;
@@ -1393,14 +1678,17 @@ export function mountCookieMoon(host: HTMLElement) {
     return faceNormal.dot(faceToCamera) > 0.35;
   }
   function renderFace() {
+    // HTML always draws over the 3D scene, so a sign seen mid-flight would show through the
+    // cookie. It stays hidden while it waits, flat on the dough, for the camera to come down.
     for (const { object, element, active } of [
       ...flagSides.map((side) => ({ ...side, active: destination === "home" && !flight })),
-      ...surfaces.map((surface) => ({ ...surface, active: destination === surface.name })),
+      ...surfaces.map((surface) => ({ ...surface, active: destination === surface.name && signWaiting !== surface })),
     ]) {
       object.visible = active && facesCamera(object);
       element.inert = !object.visible || !!flight || !!entrance;
       element.hidden = !object.visible;
     }
+    if (flagSides[1].object.visible) markBackSeen();
     htmlRenderer.render(scene, camera);
   }
   function renderScene() {
@@ -1413,6 +1701,14 @@ export function mountCookieMoon(host: HTMLElement) {
       const flagsVisible = destination === "home" && !flight && facesCamera(object);
       if (poles.visible !== flagsVisible) {
         poles.visible = flagsVisible;
+        renderer.shadowMap.needsUpdate = true;
+      }
+    }
+    for (const surface of surfaces) {
+      // Posts wait out of sight with their board, then spring up with it.
+      const postsVisible = destination === surface.name && !leaving && signWaiting !== surface;
+      if (surface.posts[0].visible !== postsVisible) {
+        surface.posts.forEach((post) => { post.visible = postsVisible; });
         renderer.shadowMap.needsUpdate = true;
       }
     }
@@ -1435,46 +1731,38 @@ export function mountCookieMoon(host: HTMLElement) {
     cookie.visible = true;
     stars.visible = starsVisible;
   }
-  function exitTo(href: string, link: HTMLAnchorElement) {
+  function exitTo(href: string) {
     controls.enabled = false;
     controls.autoRotate = false;
-    const zoomIn = link.dataset.cookieExit === "zoom";
-    const direction = camera.position.clone().sub(controls.target).normalize();
+    const surface = surfaces.find((entry) => entry.name === destination)!;
+    const up = surface.basis.up.clone().transformDirection(cookie.matrixWorld);
+    const facing = surface.basis.facing.clone().transformDirection(cookie.matrixWorld);
+    const server = surface.name === "writing";
     const toTarget = controls.target.clone();
-    if (zoomIn) {
-      // Aim at the selected post's screen position on the HTML surface plane.
-      const surface = surfaces.find((entry) => entry.name === destination)!;
-      const bounds = viewport.getBoundingClientRect();
-      const postBounds = link.getBoundingClientRect();
-      const ray = new Vector3(
-        ((postBounds.left + postBounds.width / 2 - bounds.left) / bounds.width) * 2 - 1,
-        1 - ((postBounds.top + postBounds.height / 2 - bounds.top) / bounds.height) * 2,
-        0.5,
-      ).unproject(camera).sub(camera.position).normalize();
-      const normal = new Vector3(0, 0, 1).transformDirection(surface.object.matrixWorld);
-      surface.object.getWorldPosition(toTarget);
-      const distance = toTarget.clone().sub(camera.position).dot(normal) / ray.dot(normal);
-      toTarget.copy(camera.position).addScaledVector(ray, distance);
+    const toPosition = camera.position.clone();
+    if (server) {
+      // Glide up to the rack's front panel, close enough for its lights to fill the view
+      // but outside the camera's near plane, so the panel never clips open.
+      surface.model.group.getWorldPosition(toTarget).addScaledVector(up, 0.12);
+      toPosition.copy(toTarget).addScaledVector(facing, 0.17);
     }
-    const toPosition = zoomIn
-      ? toTarget.clone().addScaledVector(direction, camera.position.distanceTo(controls.target) * 0.55)
-      : camera.position.clone().addScaledVector(direction, 1.35);
     leaving = {
       start: performance.now(),
-      duration: zoomIn ? 560 : 480,
+      duration: server ? 1250 : 2200,
       fromPosition: camera.position.clone(),
       toPosition,
       fromTarget: controls.target.clone(),
       toTarget,
-      mode: zoomIn ? "zoom" : "out",
-      fromChips: chipFades.map((batch) => batch.opacity),
+      mode: server ? "server" : "rocket",
+      surface,
+      up,
     };
     host.dataset.leaving = leaving.mode;
     host.setAttribute("aria-busy", "true");
     viewport.inert = true;
     returnButton.disabled = true;
     buttons.forEach((button) => { button.disabled = true; });
-    announcement.textContent = zoomIn ? "Opening the article." : `Opening ${destination === "writing" ? "Notes" : "About"}.`;
+    announcement.textContent = server ? "Heading into the server. Opening the page." : "Blasting off. Opening About.";
     // A timer completes navigation even if the tab stops receiving animation frames.
     exitTimer = window.setTimeout(() => window.location.assign(href), leaving.duration);
     requestRender();
@@ -1485,7 +1773,12 @@ export function mountCookieMoon(host: HTMLElement) {
     camera.position.copy(leaving.fromPosition);
     controls.target.copy(leaving.fromTarget);
     camera.lookAt(controls.target);
-    fadeChips(leaving.fromChips, leaving.fromChips, 1);
+    // Back from the page: the rocket is home on its pad again.
+    leaving.surface.model.group.position.copy(leaving.surface.modelBase);
+    leaving.surface.model.reset();
+    puffs.forEach((puff) => { puff.born = -Infinity; });
+    updateSmoke(performance.now(), false);
+    renderer.shadowMap.needsUpdate = true;
     leaving = null;
     viewport.style.opacity = "";
     viewport.inert = false;
@@ -1542,8 +1835,13 @@ export function mountCookieMoon(host: HTMLElement) {
     if (disposed) return;
     if (visible && !document.hidden) {
       updateRainbow(time);
+      updateTurning(time);
       updateTreats(time);
       updateSparkles(time);
+      for (const surface of surfaces) {
+        if (!leaving) surface.update(time);
+        if (destination === surface.name && !flight) requestRender();
+      }
       if (entrance) {
         entrance.start ??= time;
         const progress = Math.min((time - entrance.start) / entrance.duration, 1);
@@ -1555,12 +1853,34 @@ export function mountCookieMoon(host: HTMLElement) {
       }
       if (leaving) {
         const progress = Math.max(0, Math.min((time - leaving.start) / leaving.duration, 1));
-        const eased = 1 - (1 - progress) ** 3;
-        camera.position.lerpVectors(leaving.fromPosition, leaving.toPosition, eased);
-        controls.target.lerpVectors(leaving.fromTarget, leaving.toTarget, eased);
+        const { surface } = leaving;
+        if (leaving.mode === "server") {
+          // Ease in and out, turning to face the rack a little ahead of arriving at it.
+          const eased = progress * progress * (3 - 2 * progress);
+          camera.position.lerpVectors(leaving.fromPosition, leaving.toPosition, eased);
+          controls.target.lerpVectors(leaving.fromTarget, leaving.toTarget, Math.min(1, eased * 1.5));
+        } else {
+          // Ignition: the engine lights and the rocket shudders on the pad. Then it accelerates
+          // away, and the camera rises a little, shakes, and tilts to follow.
+          const ignition = 0.22;
+          const climb = Math.max(0, (progress - ignition) / (1 - ignition));
+          const lift = 2.6 * climb ** 2.2;
+          const shudder = climb === 0 ? 0.004 : 0;
+          surface.model.group.position.copy(surface.modelBase)
+            .addScaledVector(surface.basis.up, lift)
+            .addScaledVector(surface.basis.right, (Math.random() - 0.5) * shudder);
+          updateSmoke(time, progress < 0.85);
+          surface.model.group.getWorldPosition(leavingPoint).addScaledVector(leaving.up, 0.18);
+          controls.target.lerpVectors(leaving.fromTarget, leavingPoint, Math.min(1, progress * 2.5));
+          const shake = (1 - climb) * 0.006;
+          camera.position.copy(leaving.fromPosition)
+            .addScaledVector(leaving.up, lift * 0.2)
+            .add(leavingShake.set((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake, 0));
+          renderer.shadowMap.needsUpdate = true;
+        }
         camera.lookAt(controls.target);
-        if (leaving.mode === "out") fadeChips(leaving.fromChips, chipFades.map(() => 1), eased);
-        const fade = leaving.mode === "zoom" ? Math.max(0, (progress - 0.4) / 0.6) : progress;
+        surface.model.exit(progress, time);
+        const fade = Math.max(0, (progress - (leaving.mode === "server" ? 0.6 : 0.72)) / (leaving.mode === "server" ? 0.4 : 0.28));
         viewport.style.opacity = String(1 - fade * fade);
         requestRender();
       }
@@ -1568,30 +1888,31 @@ export function mountCookieMoon(host: HTMLElement) {
         const progress = Math.max(0, Math.min((time - flight.start) / flight.duration, 1));
         const eased = progress * progress * (3 - 2 * progress);
         fadeChips(flight.fromChips, flight.toChips, Math.min(progress * 1.8, 1));
-        if (flight.sideOrbit) {
-          const orbit = flight.sideOrbit;
-          const radius = orbit.fromRadius * (1 - eased) + orbit.toRadius * eased;
-          const height = orbit.fromHeight * (1 - eased) + orbit.toHeight * eased;
-          flightDirection.copy(orbit.fromDirection).applyAxisAngle(orbit.axis, orbit.angle * eased);
-          camera.position.copy(orbit.center)
-            .addScaledVector(flightDirection, radius + Math.sin(Math.PI * eased) * 0.35)
-            .addScaledVector(orbit.axis, height);
-          camera.up.copy(orbit.axis);
-        } else {
-          flightRotation.identity().slerp(flight.arc, eased);
-          flightDirection.copy(flight.fromPosition).normalize().applyQuaternion(flightRotation);
-          const radius = flight.fromPosition.length() * (1 - eased) + flight.toPosition.length() * eased;
-          camera.position.copy(flightDirection).multiplyScalar(radius + Math.sin(Math.PI * eased) * 1.1);
-          camera.up.lerpVectors(flight.fromUp, flight.toUp, eased).normalize();
-        }
+        flightRotation.identity().slerp(flight.arc, eased);
+        flightDirection.copy(flight.fromPosition).normalize().applyQuaternion(flightRotation);
+        const radius = flight.fromPosition.length() * (1 - eased) + flight.toPosition.length() * eased;
+        camera.position.copy(flightDirection).multiplyScalar(radius + Math.sin(Math.PI * eased) * 1.1);
+        camera.up.lerpVectors(flight.fromUp, flight.toUp, eased).normalize();
         controls.target.lerpVectors(flight.fromTarget, flight.toTarget, eased);
         camera.lookAt(controls.target);
         if (destination === "home") {
           cookie.quaternion.slerpQuaternions(flight.fromCookie, flight.toCookie, eased);
           renderer.shadowMap.needsUpdate = true;
         }
+        if (signWaiting && progress >= 0.78) {
+          signSpring = { surface: signWaiting, start: time };
+          signWaiting = null;
+        }
         requestRender();
         if (progress === 1) finishFlight();
+      }
+      if (signSpring) {
+        // A damped spring: up from flat, a little past upright, and a wobble to rest.
+        const seconds = (time - signSpring.start) / 1000;
+        const settled = seconds > 1.3;
+        poseSign(signSpring.surface, settled ? 0 : (-Math.PI / 2) * Math.exp(-5 * seconds) * Math.cos(9 * seconds));
+        if (settled) signSpring = null;
+        requestRender();
       }
       // Planets only orbit by day, around the whole cookie, and freeze with Pause.
       const planetsShown = daylight && destination === "home" && !flight && !leaving;
@@ -1659,6 +1980,8 @@ export function mountCookieMoon(host: HTMLElement) {
     cancelExit();
     disposed = true;
     window.clearTimeout(rainbowTimer);
+    window.clearTimeout(turnTimer);
+    turnButton.hidden = true;
     host.querySelectorAll(".cookie-pop").forEach((pop) => pop.remove());
     delete host.dataset.rainbow;
     delete host.dataset.entering;
@@ -1734,6 +2057,7 @@ export function mountCookieMoon(host: HTMLElement) {
   host.dataset.state = "ready";
   // A shared link, a reload or Back from an article lands straight on that side.
   if (placeFromHash() !== "home") flyTo(placeFromHash(), true);
+  else scheduleTurnHint();
   if (entrance) host.dataset.entering = "true";
   frame = requestAnimationFrame(animate);
 }
