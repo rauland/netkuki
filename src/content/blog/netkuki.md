@@ -10,14 +10,14 @@ tags:
 draft: false
 ---
 
-“Kuki” is just “cookie” spelled the way it sounds. Put “net” in front and you get Netkuki, so of course the homepage is a cookie floating in space.
+Cookie was my nickname as a kid. “Kuki” is just “cookie” spelled the way it sounds. Put “net” in front and you get Netkuki, so of course the homepage is a cookie floating in space.
 
 <figure class="post-diagram" aria-labelledby="netkuki-name-title">
   <figcaption><span class="diagram-label">THE NAME</span><strong id="netkuki-name-title">How the name adds up.</strong></figcaption>
   <div class="name-sum">
     <div><strong>net</strong><span>A place on the internet</span></div>
     <span class="name-operator" aria-hidden="true">+</span>
-    <div><strong>kuki</strong><span>Cookie, spelled as it sounds</span></div>
+    <div><strong>kuki</strong><span>My childhood nickname, spelled as it sounds</span></div>
     <span class="name-operator" aria-hidden="true">=</span>
     <div class="name-result"><span class="name-cookie" aria-hidden="true"></span><strong>Netkuki</strong><span>A website on a cookie</span></div>
   </div>
